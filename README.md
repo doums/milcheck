@@ -12,17 +12,27 @@ milcheck reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding d
 
 As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors) before a system upgrade i.e. `sudo pacman -Syu`, you have to be sure that the mirrors in your mirrorlist are up to date i.e. not out of sync.
 
-#### Build
+#### Install from [crates.io](https://crates.io/crates/milcheck)
 
 install Rust -> https://www.rust-lang.org/tools/install
-then
+```
+cargo install milcheck
+milcheck
+```
 
+#### Build from sources
+
+install Rust -> https://www.rust-lang.org/tools/install
 ```
 git clone https://github.com/doums/milcheck.git
 cd milcheck
+cargo build
+```
+or to build for release
+```
 cargo build --release
 ```
-You can find the binary in `./target/release/milcheck`
+the binary is located under `target/debug` or `./target/release`
 
 #### Usage
 
