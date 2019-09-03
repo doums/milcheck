@@ -12,7 +12,7 @@ milcheck reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding d
 
 #### Why ?
 
-As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors) before a system upgrade i.e. `sudo pacman -Syu`, you have to be sure that the mirrors in your mirrorlist are up to date i.e. not out of sync.
+As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before a system upgrade i.e. `sudo pacman -Syu`, you have to check that the mirrors in your mirrorlist are up to date i.e. not out of sync.
 
 #### Install from [crates.io](https://crates.io/crates/milcheck)
 
@@ -34,7 +34,7 @@ or to build for release
 ```
 cargo build --release
 ```
-the binary is located under `target/debug` or `./target/release`
+the binary is located under `target/debug` or `target/release`
 
 #### Usage
 
