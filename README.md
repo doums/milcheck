@@ -2,7 +2,7 @@
 
 ###### for **MI**rror**L**ist **Check**
 
-!(milcheck)[https://image.petitmur.beer/milcheck.png]
+![milcheck](https://image.petitmur.beer/milcheck.png)
 
 A small binary to display status of your pacman mirrorlist in your terminal, written in [Rust](https://www.rust-lang.org/)
 
