@@ -2,7 +2,7 @@
 name = "milcheck"
 version = "0.1.0"
 authors = ["pierre <dommerc.pierre@gmail.com>"]
-license = "MPL 2.0"
+license = "Mozilla Public License 2.0"
 edition = "2018"
 description = "A small binary to display status of the pacman mirrorlist in the terminal"
 repository = "https://github.com/doums/milcheck"
