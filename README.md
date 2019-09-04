@@ -8,18 +8,17 @@ A small binary to display status of your pacman mirrorlist in your terminal, wri
 
 #### How ?
 
-milcheck reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding data from the official [mirror status list](https://www.archlinux.org/mirrors/status/)
+milcheck reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding data from the official [mirror status page](https://www.archlinux.org/mirrors/status/)
 
 #### Why ?
 
-As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before a system upgrade i.e. `sudo pacman -Syu`, you have to check that the mirrors in your mirrorlist are up to date i.e. not out of sync.
+As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before a system upgrade i.e. `sudo pacman -Syu`, you have to check that the mirrors in your mirrorlist are up to date e.g. not out of sync.
 
 #### Install from [crates.io](https://crates.io/crates/milcheck)
 
 install Rust -> https://www.rust-lang.org/tools/install
 ```
 cargo install milcheck
-milcheck
 ```
 
 #### Build from sources
@@ -30,7 +29,7 @@ git clone https://github.com/doums/milcheck.git
 cd milcheck
 cargo build
 ```
-or to build for release
+to build for release
 ```
 cargo build --release
 ```
