@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/doums/milcheck.svg?branch=master)](https://travis-ci.org/doums/milcheck)
+
 ## milcheck
 
 ###### for **MI**rror**L**ist **Check**
