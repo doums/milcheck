@@ -46,7 +46,12 @@ FLAGS:
                     option, binary_name
                 ));
             }
-            _ => {}
+            Token::Argument(arg) => {
+                return Err(format!(
+                    "unexpected argument \"{}\", run {} --help",
+                    arg, binary_name
+                ));
+            }
         }
     }
     Ok(())
