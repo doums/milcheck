@@ -2,10 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+mod color;
 mod error;
 mod event;
 mod http;
 mod render;
+use color::{Color, Palette};
 use error::Error;
 use http::Http;
 use render::Render;
@@ -18,7 +20,7 @@ use std::str;
 use std::sync::mpsc;
 use std::thread;
 // use std::time::Duration;
-use termion::color::{Fg, Reset as ColorReset, Rgb};
+use termion::color::{Fg, Reset as ColorReset};
 use termion::style::{Bold, Reset};
 
 const PACMAN_MIRRORLIST: &'static str = "/etc/pacman.d/mirrorlist";
@@ -29,9 +31,6 @@ const INSYNC_HTML_TAG: &'static str = "<table id=\"successful_mirrors\"";
 const OK: &'static str = "Ok";
 const NOT_FOUND: &'static str = "Not found!";
 const OUT_OF_SYNC: &'static str = "Out of sync!";
-const RED: Rgb = Rgb(229, 115, 115);
-const GREEN: Rgb = Rgb(129, 199, 132);
-const ORANGE: Rgb = Rgb(255, 183, 77);
 const HEADERS: [&'static str; 9] = [
     "State",
     "Url",
@@ -289,12 +288,18 @@ fn print_headers(max_len: &MaxLength) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn print_mirror(max_len: &MaxLength, mirror: &Mirror, state: &'static str, color: Rgb) {
+fn print_mirror(
+    max_len: &MaxLength,
+    mirror: &Mirror,
+    state: &'static str,
+    color: &Color,
+    colors: &Palette,
+) {
     let completion_color = if let Some(value) = mirror.completion {
         if value < 100f64 && value >= 95f64 {
-            format!("{}", Fg(ORANGE))
+            format!("{}", Fg(&colors.orange))
         } else if value < 95f64 {
-            format!("{}", Fg(RED))
+            format!("{}", Fg(&colors.red))
         } else {
             "".to_string()
         }
@@ -304,9 +309,9 @@ fn print_mirror(max_len: &MaxLength, mirror: &Mirror, state: &'static str, color
     let delay_color = if let Some(value) = mirror.delay {
         let (hours, minutes) = value;
         if hours > 1 {
-            format!("{}", Fg(RED))
+            format!("{}", Fg(&colors.red))
         } else if minutes > 30 {
-            format!("{}", Fg(ORANGE))
+            format!("{}", Fg(&colors.orange))
         } else {
             "".to_string()
         }
@@ -315,9 +320,9 @@ fn print_mirror(max_len: &MaxLength, mirror: &Mirror, state: &'static str, color
     };
     let score_color = if let Some(value) = mirror.score {
         if value > 2f64 {
-            format!("{}", Fg(RED))
+            format!("{}", Fg(&colors.red))
         } else if value > 1f64 {
-            format!("{}", Fg(ORANGE))
+            format!("{}", Fg(&colors.orange))
         } else {
             "".to_string()
         }
@@ -371,7 +376,7 @@ fn print_mirror(max_len: &MaxLength, mirror: &Mirror, state: &'static str, color
     );
 }
 
-fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
+fn print_mirrors(mirrors: Vec<MirrorState>, colors: Palette) -> Result<(), Error> {
     let max_lengths = MaxLength::new(&mirrors)?;
     print_headers(&max_lengths)?;
     for mirror_state in &mirrors {
@@ -380,17 +385,17 @@ fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
                 println!(
                     "{}{}{}{} {}",
                     Bold,
-                    Fg(ORANGE),
+                    Fg(&colors.orange),
                     format!("{:>width$}", NOT_FOUND, width = max_lengths.state),
                     Reset,
                     server
                 );
             }
             MirrorState::OutOfSync(mirror) => {
-                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, RED);
+                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, &colors.red, &colors);
             }
             MirrorState::Synced(mirror) => {
-                print_mirror(&max_lengths, &mirror, OK, GREEN);
+                print_mirror(&max_lengths, &mirror, OK, &colors.green, &colors);
             }
         }
     }
@@ -489,6 +494,7 @@ pub fn run() -> Result<(), Box<dyn StdError>> {
     }
     drop(tx);
     render.finish()?;
-    print_mirrors(mirrors)?;
+    let palette = Palette::new();
+    print_mirrors(mirrors, palette)?;
     Ok(())
 }
