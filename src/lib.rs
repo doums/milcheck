@@ -7,7 +7,7 @@ mod error;
 mod event;
 mod http;
 mod render;
-use color::{Color, Palette};
+use color::Palette;
 use error::Error;
 use http::Http;
 use render::Render;
@@ -20,7 +20,8 @@ use std::str;
 use std::sync::mpsc;
 use std::thread;
 // use std::time::Duration;
-use termion::color::{Fg, Reset as ColorReset};
+use std::env;
+use termion::color::{AnsiValue, Color, Fg, Reset as ColorReset, Rgb};
 use termion::style::{Bold, Reset};
 
 const PACMAN_MIRRORLIST: &'static str = "/etc/pacman.d/mirrorlist";
@@ -288,18 +289,18 @@ fn print_headers(max_len: &MaxLength) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn print_mirror(
+fn print_mirror<C: Color + Copy>(
     max_len: &MaxLength,
     mirror: &Mirror,
     state: &'static str,
-    color: &Color,
-    colors: &Palette,
+    color: C,
+    colors: &Palette<C>,
 ) {
     let completion_color = if let Some(value) = mirror.completion {
         if value < 100f64 && value >= 95f64 {
-            format!("{}", Fg(&colors.orange))
+            format!("{}", Fg(colors.orange))
         } else if value < 95f64 {
-            format!("{}", Fg(&colors.red))
+            format!("{}", Fg(colors.red))
         } else {
             "".to_string()
         }
@@ -309,9 +310,9 @@ fn print_mirror(
     let delay_color = if let Some(value) = mirror.delay {
         let (hours, minutes) = value;
         if hours > 1 {
-            format!("{}", Fg(&colors.red))
+            format!("{}", Fg(colors.red))
         } else if minutes > 30 {
-            format!("{}", Fg(&colors.orange))
+            format!("{}", Fg(colors.orange))
         } else {
             "".to_string()
         }
@@ -320,9 +321,9 @@ fn print_mirror(
     };
     let score_color = if let Some(value) = mirror.score {
         if value > 2f64 {
-            format!("{}", Fg(&colors.red))
+            format!("{}", Fg(colors.red))
         } else if value > 1f64 {
-            format!("{}", Fg(&colors.orange))
+            format!("{}", Fg(colors.orange))
         } else {
             "".to_string()
         }
@@ -376,7 +377,10 @@ fn print_mirror(
     );
 }
 
-fn print_mirrors(mirrors: Vec<MirrorState>, colors: Palette) -> Result<(), Error> {
+fn print_mirrors<C: Color + Copy>(
+    mirrors: Vec<MirrorState>,
+    colors: Palette<C>,
+) -> Result<(), Error> {
     let max_lengths = MaxLength::new(&mirrors)?;
     print_headers(&max_lengths)?;
     for mirror_state in &mirrors {
@@ -385,17 +389,17 @@ fn print_mirrors(mirrors: Vec<MirrorState>, colors: Palette) -> Result<(), Error
                 println!(
                     "{}{}{}{} {}",
                     Bold,
-                    Fg(&colors.orange),
+                    Fg(colors.orange),
                     format!("{:>width$}", NOT_FOUND, width = max_lengths.state),
                     Reset,
                     server
                 );
             }
             MirrorState::OutOfSync(mirror) => {
-                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, &colors.red, &colors);
+                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, colors.red, &colors);
             }
             MirrorState::Synced(mirror) => {
-                print_mirror(&max_lengths, &mirror, OK, &colors.green, &colors);
+                print_mirror(&max_lengths, &mirror, OK, colors.green, &colors);
             }
         }
     }
@@ -432,6 +436,15 @@ fn parse_mirrorlist() -> Result<Vec<String>, Box<dyn StdError>> {
     } else {
         Ok(mirrors)
     }
+}
+
+fn supports_truecolor() -> bool {
+    if let Some(value) = env::var_os("COLORTERM") {
+        if value == "truecolor" {
+            return true;
+        }
+    }
+    false
 }
 
 pub fn run() -> Result<(), Box<dyn StdError>> {
@@ -494,7 +507,10 @@ pub fn run() -> Result<(), Box<dyn StdError>> {
     }
     drop(tx);
     render.finish()?;
-    let palette = Palette::new();
-    print_mirrors(mirrors, palette)?;
+    if supports_truecolor() {
+        print_mirrors(mirrors, Palette::<Rgb>::new())?;
+    } else {
+        print_mirrors(mirrors, Palette::<AnsiValue>::new())?;
+    }
     Ok(())
 }
