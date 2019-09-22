@@ -4,7 +4,6 @@
 
 use crate::error::Error;
 use crate::event::{Event, Events};
-use std::error::Error as StdError;
 use std::io::{self, Write};
 use std::iter::Cycle;
 use std::process;
@@ -27,13 +26,12 @@ impl Render {
         Render(None)
     }
 
-    pub fn run(&mut self, rx: Receiver<&'static str>) -> Result<(), Box<dyn StdError>> {
+    pub fn run(&mut self, rx: Receiver<&'static str>) {
         let handle = thread::spawn(move || -> Result<(), Error> {
             draw(rx)?;
             Ok(())
         });
         self.0 = Some(handle);
-        Ok(())
     }
 
     pub fn finish(self) -> Result<(), Error> {
@@ -87,7 +85,7 @@ impl<'a> Iterator for Spinner<'a> {
     }
 }
 
-fn draw(rx: Receiver<&'static str>) -> Result<(), Box<dyn StdError>> {
+fn draw(rx: Receiver<&'static str>) -> Result<(), Error> {
     let mut stdout = io::stdout().into_raw_mode()?;
     let (init_a, init_b) = stdout.cursor_pos()?;
     let events = Events::new();
@@ -133,6 +131,7 @@ fn draw(rx: Receiver<&'static str>) -> Result<(), Box<dyn StdError>> {
                 if Events::is_exit_key(key) {
                     write!(stdout, "{}{}{}", Show, Restore, AfterCursor)?;
                     stdout.flush()?;
+                    drop(stdout);
                     process::exit(1);
                 }
             }

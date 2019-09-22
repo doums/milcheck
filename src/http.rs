@@ -3,7 +3,6 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use crate::error::Error;
-use std::error::Error as StdError;
 use std::process::Command;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -22,7 +21,7 @@ impl Http {
         Http(handle, rx)
     }
 
-    pub fn wait(self) -> Result<String, Box<dyn StdError>> {
+    pub fn wait(self) -> Result<String, Error> {
         let mut response: String = "".to_string();
         if let Ok(msg) = self.1.recv() {
             response = String::from(msg);
@@ -32,17 +31,17 @@ impl Http {
     }
 }
 
-fn curl(url: String, tx: Sender<String>) -> Result<(), Box<dyn StdError>> {
+fn curl(url: String, tx: Sender<String>) -> Result<(), Error> {
     let output = Command::new("curl")
         .arg(&url)
         .output()
         .map_err(|_err| "this binary needs curl to work, make sure that curl is installed")?;
     if !output.status.success() {
         let curl_stderr = str::from_utf8(&output.stderr)?;
-        Err(Box::new(Error::new(format!(
+        Err(Error::new(format!(
             "curl failed to get response from {}: {}",
             url, curl_stderr
-        ))))
+        )))
     } else {
         let response = String::from_utf8(output.stdout)?;
         Ok(tx.send(response)?)

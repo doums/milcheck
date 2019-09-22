@@ -13,14 +13,11 @@ use http::Http;
 use render::Render;
 use serde::{Deserialize, Serialize};
 use std::cmp;
-use std::error::Error as StdError;
-use std::fs;
-use std::io;
-use std::str;
-use std::sync::mpsc;
-use std::thread;
-// use std::time::Duration;
 use std::env;
+use std::fs;
+use std::str;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread;
 use termion::color::{AnsiValue, Color, Fg, Reset as ColorReset, Rgb};
 use termion::style::{Bold, Reset};
 
@@ -271,7 +268,7 @@ fn find_max_len(mirrors: &Vec<MirrorState>, key: &'static str) -> Result<usize, 
     Ok(max_len)
 }
 
-fn print_headers(max_len: &MaxLength) -> Result<(), io::Error> {
+fn print_headers(max_len: &MaxLength) {
     println!(
         "{}{} {} {} {} {} {} {} {} {}{}",
         Bold,
@@ -286,7 +283,6 @@ fn print_headers(max_len: &MaxLength) -> Result<(), io::Error> {
         format!("{:>width$}", HEADERS[8], width = max_len.score),
         Reset
     );
-    Ok(())
 }
 
 fn print_mirror<C: Color + Copy>(
@@ -382,7 +378,7 @@ fn print_mirrors<C: Color + Copy>(
     colors: Palette<C>,
 ) -> Result<(), Error> {
     let max_lengths = MaxLength::new(&mirrors)?;
-    print_headers(&max_lengths)?;
+    print_headers(&max_lengths);
     for mirror_state in &mirrors {
         match mirror_state {
             MirrorState::NotFound(server) => {
@@ -407,7 +403,7 @@ fn print_mirrors<C: Color + Copy>(
     Ok(())
 }
 
-fn parse_mirrorlist() -> Result<Vec<String>, Box<dyn StdError>> {
+fn parse_mirrorlist() -> Result<Vec<String>, String> {
     let mut mirrors = vec![];
     let mirrorlist = fs::read_to_string(PACMAN_MIRRORLIST).map_err(|err| {
         format!(
@@ -429,10 +425,7 @@ fn parse_mirrorlist() -> Result<Vec<String>, Box<dyn StdError>> {
         }
     }
     if mirrors.len() == 0 {
-        Err(Box::new(Error::new(format!(
-            "no server found in {}",
-            PACMAN_MIRRORLIST
-        ))))
+        Err(format!("no server found in {}", PACMAN_MIRRORLIST))
     } else {
         Ok(mirrors)
     }
@@ -447,38 +440,37 @@ fn supports_truecolor() -> bool {
     false
 }
 
-pub fn run() -> Result<(), Box<dyn StdError>> {
+pub fn logic(
+    tx: Sender<&'static str>,
+    rx: Receiver<&'static str>,
+    render: &mut Render,
+) -> Result<Vec<MirrorState>, Error> {
     let mut mirrors = vec![];
-    let (tx, rx) = mpsc::channel();
     let (tx_m, rx_m) = mpsc::channel();
     let mut handles = vec![];
-    let mut render = Render::new();
-    render.run(rx)?;
+    render.run(rx);
     tx.send("parsing local mirrorlist")?;
     let mirrorlist = parse_mirrorlist()?;
     tx.send("fetching mirror status list")?;
-    // thread::sleep(Duration::from_secs(2));
     let request = Http::fetch(MIRROR_STATUS_URI);
     let json_request = Http::fetch(MIRROR_STATUS_JSON_URI);
     let response = request.wait()?;
     let json_response = json_request.wait()?;
     tx.send("deserialize json data")?;
-    // thread::sleep(Duration::from_secs(5));
     let json: JsonResponse = serde_json::from_str(&json_response)
         .map_err(|err| format!("json response parsing failed: {}", err))?;
     tx.send("web scraping")?;
-    // thread::sleep(Duration::from_secs(5));
     let v: Vec<&str> = response.split("</table>").collect();
     if v.len() != 4 {
-        return Err(Box::new(Error::new("web scraping failed")));
+        return Err(Error::new("web scraping failed"));
     }
     if let None = v[0].find(OUTOFSYNC_HTML_TAG) {
-        return Err(Box::new(Error::new("web scraping failed")));
+        return Err(Error::new("web scraping failed"));
     }
     if let None = v[1].find(INSYNC_HTML_TAG) {
-        return Err(Box::new(Error::new("web scraping failed")));
+        return Err(Error::new("web scraping failed"));
     }
-    tx.send("build data for rendering")?;
+    tx.send("building data")?;
     for server in mirrorlist {
         let out_of_sync = String::from(v[0]);
         let mirrors_json = json.urls.clone();
@@ -505,12 +497,28 @@ pub fn run() -> Result<(), Box<dyn StdError>> {
     for handle in handles {
         handle.join().unwrap()?;
     }
-    drop(tx);
-    render.finish()?;
-    if supports_truecolor() {
-        print_mirrors(mirrors, Palette::<Rgb>::new())?;
-    } else {
-        print_mirrors(mirrors, Palette::<AnsiValue>::new())?;
+    Ok(mirrors)
+}
+
+pub fn run() -> Result<(), Error> {
+    let (tx, rx) = mpsc::channel();
+    let mut render = Render::new();
+    let tx_cloned = Sender::clone(&tx);
+    match logic(tx_cloned, rx, &mut render) {
+        Ok(mirrors) => {
+            drop(tx);
+            render.finish()?;
+            if supports_truecolor() {
+                print_mirrors(mirrors, Palette::<Rgb>::new())?;
+            } else {
+                print_mirrors(mirrors, Palette::<AnsiValue>::new())?;
+            }
+        }
+        Err(err) => {
+            drop(tx);
+            render.finish()?;
+            return Err(err);
+        }
     }
     Ok(())
 }
