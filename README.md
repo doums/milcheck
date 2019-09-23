@@ -22,7 +22,7 @@ As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), 
 
 #### Ready to shake..
 
-Rust is a language that compiles to native code and by default statically links all dependencies. Simply download the latest release of the precompiled binary [here](https://github.com/doums/milcheck/releases) and use it!
+Rust is a language that compiles to native code and by default statically links all dependencies. Simply download the latest [release](https://github.com/doums/milcheck/releases) of the precompiled binary and use it!
 (do not forget to make it executable `chmod 755 milcheck`)
 
 #### Install from [crates.io](https://crates.io/crates/milcheck)
