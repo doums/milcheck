@@ -2,37 +2,39 @@
 
 ## milcheck
 
-###### for **MI**rror**L**ist **Check**
+:tea: _**MI**rror**L**ist **Check**_
 
 ![milcheck](https://image.petitmur.beer/milcheck.png)
 
 A small binary that displays the status of your pacman mirrorlist in your terminal, written in [Rust](https://www.rust-lang.org/)
 
-#### How ?
+### How ?
 
 milcheck just reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding data from the official [mirror status page](https://www.archlinux.org/mirrors/status/)
 
-#### Why ?
+### Why ?
 
-As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before a system upgrade i.e. `sudo pacman -Syu`, you must check that the mirrors in your mirrorlist are up to date e.g. not out of sync.
+As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors),\
+before a system upgrade i.e. `sudo pacman -Syu`, you must check that the mirrors in your mirrorlist are up to date e.g. not out of sync.
 
-#### It's not
+### It's not
 
 ..an additional mirrorlist ranking utility
 
-#### Ready to shake..
+### Install
 
-Rust is a language that compiles to native code and by default statically links all dependencies. Simply download the latest [release](https://github.com/doums/milcheck/releases) of the precompiled binary and use it!
+Rust is a language that compiles to native code and by default statically links all dependencies.\
+Simply download the latest [release](https://github.com/doums/milcheck/releases) of the precompiled binary and use it!
 (do not forget to make it executable `chmod 755 milcheck`)
 
-#### Install from [crates.io](https://crates.io/crates/milcheck)
+### Install from [crates.io](https://crates.io/crates/milcheck)
 
 install Rust -> https://www.rust-lang.org/tools/install
 ```
 cargo install milcheck
 ```
 
-#### Build from sources
+### Build from sources
 
 install Rust -> https://www.rust-lang.org/tools/install
 ```
@@ -46,11 +48,11 @@ cargo build --release
 ```
 the binary is located under `target/debug` or `target/release`
 
-#### Usage
+### Usage
 
 ```
 milcheck
 ```
 
-#### License
+### License
 Mozilla Public License 2.0

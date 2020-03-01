@@ -2,23 +2,20 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-mod color;
 mod error;
 mod event;
 mod http;
 mod render;
-use color::Palette;
 use error::Error;
 use http::Http;
 use render::Render;
 use serde::{Deserialize, Serialize};
 use std::cmp;
-use std::env;
 use std::fs;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
-use termion::color::{AnsiValue, Color, Fg, Reset as ColorReset, Rgb};
+use termion::color::{Color, Fg, Green, Red, Reset as ColorReset, Yellow};
 use termion::style::{Bold, Reset};
 
 const PACMAN_MIRRORLIST: &'static str = "/etc/pacman.d/mirrorlist";
@@ -290,13 +287,12 @@ fn print_mirror<C: Color + Copy>(
     mirror: &Mirror,
     state: &'static str,
     color: C,
-    colors: &Palette<C>,
 ) {
     let completion_color = if let Some(value) = mirror.completion {
         if value < 100f64 && value >= 95f64 {
-            format!("{}", Fg(colors.orange))
+            format!("{}", Fg(Yellow))
         } else if value < 95f64 {
-            format!("{}", Fg(colors.red))
+            format!("{}", Fg(Red))
         } else {
             "".to_string()
         }
@@ -306,9 +302,9 @@ fn print_mirror<C: Color + Copy>(
     let delay_color = if let Some(value) = mirror.delay {
         let (hours, minutes) = value;
         if hours > 1 {
-            format!("{}", Fg(colors.red))
+            format!("{}", Fg(Red))
         } else if minutes > 30 {
-            format!("{}", Fg(colors.orange))
+            format!("{}", Fg(Yellow))
         } else {
             "".to_string()
         }
@@ -317,9 +313,9 @@ fn print_mirror<C: Color + Copy>(
     };
     let score_color = if let Some(value) = mirror.score {
         if value > 2f64 {
-            format!("{}", Fg(colors.red))
+            format!("{}", Fg(Red))
         } else if value > 1f64 {
-            format!("{}", Fg(colors.orange))
+            format!("{}", Fg(Yellow))
         } else {
             "".to_string()
         }
@@ -373,10 +369,7 @@ fn print_mirror<C: Color + Copy>(
     );
 }
 
-fn print_mirrors<C: Color + Copy>(
-    mirrors: Vec<MirrorState>,
-    colors: Palette<C>,
-) -> Result<(), Error> {
+fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
     let max_lengths = MaxLength::new(&mirrors)?;
     print_headers(&max_lengths);
     for mirror_state in &mirrors {
@@ -385,17 +378,17 @@ fn print_mirrors<C: Color + Copy>(
                 println!(
                     "{}{}{}{} {}",
                     Bold,
-                    Fg(colors.orange),
+                    Fg(Yellow),
                     format!("{:>width$}", NOT_FOUND, width = max_lengths.state),
                     Reset,
                     server
                 );
             }
             MirrorState::OutOfSync(mirror) => {
-                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, colors.red, &colors);
+                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, Red);
             }
             MirrorState::Synced(mirror) => {
-                print_mirror(&max_lengths, &mirror, OK, colors.green, &colors);
+                print_mirror(&max_lengths, &mirror, OK, Green);
             }
         }
     }
@@ -429,15 +422,6 @@ fn parse_mirrorlist() -> Result<Vec<String>, String> {
     } else {
         Ok(mirrors)
     }
-}
-
-fn supports_truecolor() -> bool {
-    if let Some(value) = env::var_os("COLORTERM") {
-        if value == "truecolor" {
-            return true;
-        }
-    }
-    false
 }
 
 pub fn logic(
@@ -508,11 +492,7 @@ pub fn run() -> Result<(), Error> {
         Ok(mirrors) => {
             drop(tx);
             render.finish()?;
-            if supports_truecolor() {
-                print_mirrors(mirrors, Palette::<Rgb>::new())?;
-            } else {
-                print_mirrors(mirrors, Palette::<AnsiValue>::new())?;
-            }
+            print_mirrors(mirrors)?;
         }
         Err(err) => {
             drop(tx);

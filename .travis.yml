@@ -2,17 +2,18 @@ language: rust
 cache: cargo
 script: cargo build --release
 deploy:
-  # - provider: cargo
-    # token:
-      # secure: TnF01Py6VzLNjTm/q3P20KivVtuf9TeWQvZmW1WRU4TKQciKqm5owTpPH96Yzo4IM7NsAHVZjHtDUlh0p6a/GREFCPZqyZEdw/DXYhjxvbzFKmJQduftUYXLOxOy2Y5WUzgjyH2gwwtRT2nSRMJDKT4QIrcNZ31pvpl2kT1pgsXAsKxBpBO90aHL/EoBqq5W54nUUTyln/baP7F8tBduXyk8BrHH4kSmgVcAAuJ4IwjmJawjZKnVV7twfwGlxLNglPmbMEWUExSqNSjSWMqa/wbtAiKaKVdNV1OQ0PJq4by8bF5Bi4QUCjmLJKu3Vukj4cbdfKHxkI06SUmvmOhvtXZh3MbcCm3De9gTQ0uEH/bxz5T2kE+nB0ialN9yp93a9phCpNXskSK87zuzZDQyRZrCB1jVlIV2PCvAW1XyzU313LmDK6vooB9AZWOKlFZc2pLEL/fCjzowXqFJU28vksFQwcFMdLRjeyXTt8/1GoRH/llTVKIzuE6X3KYeX6ya7MUVXSfCxEhK69Ki3m0rekl+UgHrvtGK3GgUx5vqIta/rWq/RzjmJJId2CgU7iZlSz9PMVBjRlc48CvTZ54d/hshBsvLHw11LlX5/ik4pE+0iv/VvDXNafn9fTAVfP5gUwBF3JtS/0vyXiSOAQhlIqidVasyrT2wnkoGs7WZMbk=
-    # on:
-      # repo: doums/milcheck
-      # tags: true
+  - provider: cargo
+    edge: true
+    token:
+      secure: bl0wMKLtLHSY1wHqwBUNjd+xjptv2Tk3XR1sadJgu2N9hcZC5/fMSER7GICDW7BV9TPe3y+6fMfMjIsyHyrB4vJMoPA9g3tzPIVrG5a+jEAX37nYc5RheR4ogaV69Qsqqkm7wNiW3oBXWOqjGlBSbFaciHU5M9pGsXKyl87QXQ8JKV41+fLV4pc2Z5BZx78ueEiqqGEjAsR81yfiLrqOIaaq9XxMrZ3mlF/+eCf8Vx3ujqJ7MeUtcfoi9p25QoREhkxpGMYGp1JQp4o5cVY/otdKSS1lB5lmxsB/ls61uZ7Vl6BqqWvbaIc/iv8H/uCEXy4T3WcEHKMdHSEdd2f1RdPnFzZKdzSjYbEEAhJWlUhoR/q4tQ8+REYuUAL8zB7yyr/Kg8uLuRDSuVSxKXejOAA/43F3XrPfhXexwirMnebg8yCxcaGopsgl6q/LDc1M3kjC6KFRlagQB2B7oHKOO0loSVGrm0r839Q0nC7AX0aBpfYgJ29j6BAiGApf/alSa+lSS35VJUbhHR/y9pKZmMShC68NYHyqBaFe6Jy9xCZB4y1Fmii0yR4tDc6sjYqhko2Q6vT3M/UtWdZQC+E08hev2z/NKhhB7WJ8SFqd6hQITMNPPWHDbJGXCxHHI5rlDHJK2BFAEmZNsfoPtCc4ui4AalEX79nd8MinJk7Mlmo=
+    on:
+      repo: doums/milcheck
+      tags: true
   - provider: releases
+    edge: true
     api_key:
       secure: UbNKfxJZBTsI+5WDQqte8L4vAukNw6BUUISXKJGoo/RMSY//eAepYdOD+ffb4LJEYXKqNqbr+jOFj5lP17fzflbwHso5EYnR29p+6mEQXK+nfQJsroAxJg+NcBLjcnevUZiB94+Ao5QSXoPWX8CPOcLqT04BgKqjn/8M2pzxkdD4rMuLmCxAbK+7UWpQ/iB5JDcN2TEelvkFuFWG+GR1NXGe9k3/pI+QWsBMzfUtSdqS/MMDvr6sCkjdHxk05NjxTOpOa9G4V/mrb5PaVvZYJf/PCgdPEdwYLcX+mP3gz8EieVA0CNzhQx59oqOui2Wfblk7uMUIJOvsAj0VcD/8LItIHxa4mz82VRWlitlCnvMoybO3bsTW3rkFrfts3iZMgCPuBOAk7ehOruwsbN3wKTVHowAd7h44R5aLOe9hsgexNekr9MsbBDH7p+TMttIiUD7GUJrK4njVG0x0Bcq+BvT30sSkXcmx6IW0gwQPlwCX9pO5gs4h1xjEW47b+knd5bgZMrySGkXFyydi2YuPyi3t0a6UnFJINvBJ9llYcqAnjFQZQcTKk7/Kftcl082re9F9Hnjl4yx3r0rAz90wFI4LGrn/ml2dUg4FslFARgcTywr4wxo7iWGXQ5KfWhN9bIrg8ND7w0jtOmmQoky7UwXs3Hf/8M+Ms+/h0kKDRF4=
     file: ./target/release/milcheck
-    skip_cleanup: true
     on:
       repo: doums/milcheck
       tags: true
