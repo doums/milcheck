@@ -4,8 +4,6 @@
 
 :tea: _**MI**rror**L**ist **Check**_
 
-![milcheck](https://image.petitmur.beer/milcheck.png)
-
 A small binary that displays the status of your pacman mirrorlist in your terminal, written in [Rust](https://www.rust-lang.org/)
 
 ### How ?
