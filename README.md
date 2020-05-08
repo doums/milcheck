@@ -34,6 +34,10 @@ install Rust -> https://www.rust-lang.org/tools/install
 cargo install milcheck
 ```
 
+### Arch Linux AUR package
+
+milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck) in the Arch User Repository.
+
 ### Build from sources
 
 install Rust -> https://www.rust-lang.org/tools/install
