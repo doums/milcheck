@@ -36,7 +36,7 @@ cargo install milcheck
 
 ### Arch Linux AUR package
 
-milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck) in the Arch User Repository.
+milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck-bin) in the Arch User Repository.
 
 ### Build from sources
 
