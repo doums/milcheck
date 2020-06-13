@@ -14,7 +14,6 @@ use std::cmp;
 use std::fs;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::thread;
 use termion::color::{Color, Fg, Green, Red, Reset as ColorReset, Yellow};
 use termion::style::{Bold, Reset};
 
@@ -430,8 +429,6 @@ pub fn logic(
     render: &mut Render,
 ) -> Result<Vec<MirrorState>, Error> {
     let mut mirrors = vec![];
-    let (tx_m, rx_m) = mpsc::channel();
-    let mut handles = vec![];
     render.run(rx);
     tx.send("parsing local mirrorlist")?;
     let mirrorlist = parse_mirrorlist()?;
@@ -456,31 +453,17 @@ pub fn logic(
     }
     tx.send("building data")?;
     for server in mirrorlist {
-        let out_of_sync = String::from(v[0]);
-        let mirrors_json = json.urls.clone();
-        let tx_cloned = mpsc::Sender::clone(&tx_m);
-        let handle = thread::spawn(move || -> Result<(), Error> {
-            if let Some(mirror) = mirrors_json.iter().find(|&mirror| mirror.url == server) {
-                if let Some(_i) = out_of_sync.find(&server) {
-                    tx_cloned.send(MirrorState::OutOfSync(Mirror::from(mirror)))?;
-                } else {
-                    tx_cloned.send(MirrorState::Synced(Mirror::from(mirror)))?;
-                }
+        if let Some(mirror) = json.urls.iter().find(|&mirror| mirror.url == server) {
+            if let Some(_i) = v[0].find(&server) {
+                mirrors.push(MirrorState::OutOfSync(Mirror::from(mirror)));
             } else {
-                tx_cloned.send(MirrorState::NotFound(server))?;
+                mirrors.push(MirrorState::Synced(Mirror::from(mirror)));
             }
-            Ok(())
-        });
-        handles.push(handle);
+        } else {
+            mirrors.push(MirrorState::NotFound(server));
+        }
     }
     tx.send("done")?;
-    drop(tx_m);
-    for received in rx_m {
-        mirrors.push(received);
-    }
-    for handle in handles {
-        handle.join().unwrap()?;
-    }
     Ok(mirrors)
 }
 
