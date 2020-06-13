@@ -1,6 +1,6 @@
 [package]
 name = "milcheck"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["pierre <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2018"
