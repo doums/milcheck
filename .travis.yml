@@ -2,13 +2,6 @@ language: rust
 cache: cargo
 script: cargo build --release
 deploy:
-  - provider: cargo
-    edge: true
-    token:
-      secure: bl0wMKLtLHSY1wHqwBUNjd+xjptv2Tk3XR1sadJgu2N9hcZC5/fMSER7GICDW7BV9TPe3y+6fMfMjIsyHyrB4vJMoPA9g3tzPIVrG5a+jEAX37nYc5RheR4ogaV69Qsqqkm7wNiW3oBXWOqjGlBSbFaciHU5M9pGsXKyl87QXQ8JKV41+fLV4pc2Z5BZx78ueEiqqGEjAsR81yfiLrqOIaaq9XxMrZ3mlF/+eCf8Vx3ujqJ7MeUtcfoi9p25QoREhkxpGMYGp1JQp4o5cVY/otdKSS1lB5lmxsB/ls61uZ7Vl6BqqWvbaIc/iv8H/uCEXy4T3WcEHKMdHSEdd2f1RdPnFzZKdzSjYbEEAhJWlUhoR/q4tQ8+REYuUAL8zB7yyr/Kg8uLuRDSuVSxKXejOAA/43F3XrPfhXexwirMnebg8yCxcaGopsgl6q/LDc1M3kjC6KFRlagQB2B7oHKOO0loSVGrm0r839Q0nC7AX0aBpfYgJ29j6BAiGApf/alSa+lSS35VJUbhHR/y9pKZmMShC68NYHyqBaFe6Jy9xCZB4y1Fmii0yR4tDc6sjYqhko2Q6vT3M/UtWdZQC+E08hev2z/NKhhB7WJ8SFqd6hQITMNPPWHDbJGXCxHHI5rlDHJK2BFAEmZNsfoPtCc4ui4AalEX79nd8MinJk7Mlmo=
-    on:
-      repo: doums/milcheck
-      tags: true
   - provider: releases
     edge: true
     api_key:
