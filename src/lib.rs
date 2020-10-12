@@ -17,15 +17,15 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use termion::color::{Color, Fg, Green, Red, Reset as ColorReset, Yellow};
 use termion::style::{Bold, Reset};
 
-const PACMAN_MIRRORLIST: &'static str = "/etc/pacman.d/mirrorlist";
-const MIRROR_STATUS_URI: &'static str = "https://www.archlinux.org/mirrors/status/";
-const MIRROR_STATUS_JSON_URI: &'static str = "https://www.archlinux.org/mirrors/status/json/";
-const OUTOFSYNC_HTML_TAG: &'static str = "<table id=\"outofsync_mirrors\"";
-const INSYNC_HTML_TAG: &'static str = "<table id=\"successful_mirrors\"";
-const OK: &'static str = "Ok";
-const NOT_FOUND: &'static str = "Not found!";
-const OUT_OF_SYNC: &'static str = "Out of sync!";
-const HEADERS: [&'static str; 9] = [
+const PACMAN_MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
+const MIRROR_STATUS_URI: &str = "https://www.archlinux.org/mirrors/status/";
+const MIRROR_STATUS_JSON_URI: &str = "https://www.archlinux.org/mirrors/status/json/";
+const OUTOFSYNC_HTML_TAG: &str = "<table id=\"outofsync_mirrors\"";
+const INSYNC_HTML_TAG: &str = "<table id=\"successful_mirrors\"";
+const OK: &str = "Ok";
+const NOT_FOUND: &str = "Not found!";
+const OUT_OF_SYNC: &str = "Out of sync!";
+const HEADERS: [&str; 9] = [
     "State",
     "Url",
     "Protocol",
@@ -59,7 +59,7 @@ pub struct Mirror {
 impl Mirror {
     fn completion_to_str(&self) -> String {
         if let Some(value) = self.completion {
-            if value != 100f64 {
+            if (value - 100f64).abs() > f64::EPSILON {
                 format!("{:.1}", value)
             } else {
                 format!("{:.0}", value)
@@ -190,7 +190,7 @@ struct MaxLength {
 }
 
 impl MaxLength {
-    fn new(mirrors: &Vec<MirrorState>) -> Result<Self, Error> {
+    fn new(mirrors: &[MirrorState]) -> Result<Self, Error> {
         let state = cmp::max(find_max_state_len(mirrors), HEADERS[0].len());
         let url = cmp::max(find_max_len(mirrors, "url")?, HEADERS[1].len());
         let protocol = cmp::max(find_max_len(mirrors, "protocol")?, HEADERS[2].len());
@@ -214,7 +214,7 @@ impl MaxLength {
     }
 }
 
-fn find_max_state_len(mirrors: &Vec<MirrorState>) -> usize {
+fn find_max_state_len(mirrors: &[MirrorState]) -> usize {
     let mut max_len = 0;
     for mirror_state in mirrors {
         match mirror_state {
@@ -238,7 +238,7 @@ fn find_max_state_len(mirrors: &Vec<MirrorState>) -> usize {
     max_len
 }
 
-fn find_max_len(mirrors: &Vec<MirrorState>, key: &'static str) -> Result<usize, Error> {
+fn find_max_len(mirrors: &[MirrorState], key: &'static str) -> Result<usize, Error> {
     let mut max_len = 0;
     for mirror_state in mirrors {
         match mirror_state {
@@ -416,7 +416,7 @@ fn parse_mirrorlist() -> Result<Vec<String>, String> {
             }
         }
     }
-    if mirrors.len() == 0 {
+    if mirrors.is_empty() {
         Err(format!("no server found in {}", PACMAN_MIRRORLIST))
     } else {
         Ok(mirrors)
@@ -445,10 +445,10 @@ pub fn logic(
     if v.len() != 4 {
         return Err(Error::new("web scraping failed"));
     }
-    if let None = v[0].find(OUTOFSYNC_HTML_TAG) {
+    if v[0].find(OUTOFSYNC_HTML_TAG).is_none() {
         return Err(Error::new("web scraping failed"));
     }
-    if let None = v[1].find(INSYNC_HTML_TAG) {
+    if v[1].find(INSYNC_HTML_TAG).is_none() {
         return Err(Error::new("web scraping failed"));
     }
     tx.send("building data")?;

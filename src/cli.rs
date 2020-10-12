@@ -25,7 +25,7 @@ fn parse_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'a>>) 
     let current_arg = &arg[1..];
     for (i, c) in current_arg.char_indices() {
         if let Some(option) = options.iter().find(|option| c == option.1) {
-            if option.3 == true {
+            if option.3 {
                 if i + 1 < current_arg.len() {
                     let arg_opt = &current_arg[i + 1..];
                     tokens.push(Token::Option(&option, Some(String::from(arg_opt))));
@@ -44,7 +44,7 @@ fn parse_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'a>>) 
 
 fn parse_long_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'a>>) {
     let current_arg = &arg[2..];
-    match current_arg.find("=") {
+    match current_arg.find('=') {
         None => {
             if let Some(option) = options.iter().find(|option| current_arg == option.2) {
                 tokens.push(Token::Option(&option, None));
@@ -56,7 +56,7 @@ fn parse_long_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'
             let first = &current_arg[..i];
             let last = &current_arg[i + 1..];
             if let Some(option) = options.iter().find(|option| first == option.2) {
-                if option.3 == true && !last.is_empty() {
+                if option.3 && !last.is_empty() {
                     tokens.push(Token::Option(&option, Some(String::from(last))));
                 } else {
                     tokens.push(Token::Option(&option, None));
@@ -71,17 +71,17 @@ fn parse_long_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'
 fn tokenize<'a>(args: &mut Args, flags: &'a [Flag]) -> Vec<Token<'a>> {
     let mut tokens = vec![];
     let mut accept_opt = true;
-    while let Some(arg) = args.next() {
+    for arg in args {
         if arg == "-" {
             tokens.push(Token::Argument(String::from("-")));
         } else if arg == "--" {
             accept_opt = false;
-        } else if arg.len() > 2 && arg.starts_with("--") && accept_opt == true {
+        } else if arg.len() > 2 && arg.starts_with("--") && accept_opt {
             parse_long_token(flags, &arg, &mut tokens);
-        } else if arg.len() > 1 && arg.starts_with("-") && accept_opt == true {
+        } else if arg.len() > 1 && arg.starts_with('-') && accept_opt {
             parse_token(flags, &arg, &mut tokens);
         } else {
-            tokens.push(Token::Argument(String::from(arg)));
+            tokens.push(Token::Argument(arg));
         }
     }
     tokens
@@ -93,7 +93,7 @@ pub fn normalize<'a>(tokens: &mut Vec<Token<'a>>) {
     let mut token_iter = tokens.iter().enumerate().peekable();
     while let Some((i, token)) = token_iter.next() {
         if let Token::Option(flag, arg) = token {
-            if flag.3 == true && *arg == None {
+            if flag.3 && *arg == None {
                 if let Some((_j, Token::Argument(value))) = token_iter.peek() {
                     to_merge.push((i - inc, *flag, value.to_string()));
                     inc += 1;
@@ -118,7 +118,7 @@ impl Parser {
             }
         }
         Parser {
-            args: args,
+            args,
             flags: vec![],
             binary,
         }

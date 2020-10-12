@@ -34,7 +34,7 @@ impl Events {
         let (tick_tx, tick_rx) = mpsc::channel();
         let input_handle = {
             let tx = tx.clone();
-            let tick_tx = tick_tx.clone();
+            let tick_tx = tick_tx;
             thread::spawn(move || -> Result<(), Error> {
                 let stdin = io::stdin();
                 for input in stdin.keys() {
@@ -49,7 +49,7 @@ impl Events {
             })
         };
         let tick_handle = {
-            let tx = tx.clone();
+            let tx = tx;
             thread::spawn(move || -> Result<(), Error> {
                 loop {
                     tx.send(Event::Tick)?;
@@ -66,7 +66,7 @@ impl Events {
             })
         };
         Events {
-            rx: rx,
+            rx,
             input_handle,
             tick_handle,
         }

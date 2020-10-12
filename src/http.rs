@@ -24,7 +24,7 @@ impl Http {
     pub fn wait(self) -> Result<String, Error> {
         let mut response: String = "".to_string();
         if let Ok(msg) = self.1.recv() {
-            response = String::from(msg);
+            response = msg;
         }
         self.0.join().unwrap()?;
         Ok(response)

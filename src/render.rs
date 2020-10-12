@@ -36,10 +36,16 @@ impl Render {
 
     pub fn finish(self) -> Result<(), Error> {
         if let Some(handle) = self.0 {
-            return handle.join().unwrap();
+            handle.join().unwrap()
         } else {
             Ok(())
         }
+    }
+}
+
+impl Default for Render {
+    fn default() -> Self {
+        Render::new()
     }
 }
 
@@ -92,7 +98,7 @@ fn draw(rx: Receiver<&'static str>) -> Result<(), Error> {
     write!(stdout, "{}{}", Save, Hide)?;
     let mut tmp_state = "";
     let steps = [
-        format!(" ----"),
+        " ----".to_string(),
         format!("{}c{}----", Fg(Yellow), Fg(ColorReset)),
         format!("{}C{}----", Fg(Yellow), Fg(ColorReset)),
         format!(" {}C{}---", Fg(Yellow), Fg(ColorReset)),
@@ -126,17 +132,14 @@ fn draw(rx: Receiver<&'static str>) -> Result<(), Error> {
         }
         write!(stdout, "{}{}{}", Italic, tmp_state, Reset)?;
         stdout.flush()?;
-        match events.next()? {
-            Event::Input(key) => {
-                if Events::is_exit_key(key) {
-                    write!(stdout, "{}{}{}", Show, Restore, AfterCursor)?;
-                    stdout.flush()?;
-                    drop(stdout);
-                    process::exit(1);
-                }
+        if let Event::Input(key) = events.next()? {
+            if Events::is_exit_key(key) {
+                write!(stdout, "{}{}{}", Show, Restore, AfterCursor)?;
+                stdout.flush()?;
+                drop(stdout);
+                process::exit(1);
             }
-            _ => {}
-        };
+        }
     }
     // events.finish()?;
     write!(stdout, "{}{}{}", Restore, AfterCursor, Show)?;
