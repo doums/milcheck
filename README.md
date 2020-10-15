@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/doums/milcheck.svg?branch=master)](https://travis-ci.org/doums/milcheck)
+![milcheck](https://github.com/doums/milcheck/workflows/Rust/badge.svg)
 
 ## milcheck
 
