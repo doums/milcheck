@@ -67,3 +67,9 @@ impl From<FromUtf8Error> for Error {
         Error(error.to_string())
     }
 }
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        Error(error.to_string())
+    }
+}

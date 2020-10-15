@@ -433,8 +433,8 @@ pub fn logic(
     tx.send("parsing local mirrorlist")?;
     let mirrorlist = parse_mirrorlist()?;
     tx.send("fetching mirror status list")?;
-    let request = Http::fetch(MIRROR_STATUS_URI);
-    let json_request = Http::fetch(MIRROR_STATUS_JSON_URI);
+    let request = Http::get(MIRROR_STATUS_URI);
+    let json_request = Http::get(MIRROR_STATUS_JSON_URI);
     let response = request.wait()?;
     let json_response = json_request.wait()?;
     tx.send("deserialize json data")?;

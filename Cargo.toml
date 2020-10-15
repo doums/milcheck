@@ -1,6 +1,6 @@
 [package]
 name = "milcheck"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["pierre <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2018"
@@ -14,3 +14,4 @@ categories = ["command-line-utilities"]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 termion = "1.5.5"
+reqwest = { version = "0.10", features = ["blocking"] }
