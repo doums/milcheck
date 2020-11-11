@@ -1,4 +1,5 @@
-![milcheck](https://github.com/doums/milcheck/workflows/Rust/badge.svg)
+[![milcheck](https://img.shields.io/github/workflow/status/doums/milcheck/Rust?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=github&style=for-the-badge)](https://github.com/doums/milcheck/actions?query=workflow%3ARust)
+[![milcheck](https://img.shields.io/aur/version/milcheck-bin?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=arch-linux&style=for-the-badge)](https://aur.archlinux.org/packages/milcheck-bin/)
 
 ## milcheck
 
