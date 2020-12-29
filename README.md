@@ -5,9 +5,9 @@
 
 :tea: _**MI**rror**L**ist **Check**_
 
-![milcheck](https://image.petitmur.beer/milcheck.png)
+![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
 
-A small binary that displays the status of your pacman mirrorlist in your terminal, written in [Rust](https://www.rust-lang.org/)
+A small binary that displays the status of your pacman mirrorlist in your terminal
 
 ### How ?
 
