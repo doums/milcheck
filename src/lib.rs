@@ -300,7 +300,7 @@ fn print_mirror<C: Color + Copy>(
     };
     let delay_color = if let Some(value) = mirror.delay {
         let (hours, minutes) = value;
-        if hours > 1 {
+        if hours > 0 {
             format!("{}", Fg(Red))
         } else if minutes > 30 {
             format!("{}", Fg(Yellow))
@@ -404,15 +404,15 @@ fn parse_mirrorlist() -> Result<Vec<String>, String> {
         )
     })?;
     for line in mirrorlist.lines() {
-        if line.starts_with("Server = ") {
+        if let Some(url) = line.strip_prefix("Server = ") {
             if line.ends_with("/$repo/os/$arch") {
-                let end = line.len() - 14;
-                mirrors.push(String::from(&line[9..end]));
+                let end = url.len() - 14;
+                mirrors.push(String::from(&url[..end]));
             } else if line.ends_with("/$repo/os/$arch/") {
-                let end = line.len() - 15;
-                mirrors.push(String::from(&line[9..end]));
+                let end = url.len() - 15;
+                mirrors.push(String::from(&url[..end]));
             } else {
-                mirrors.push(String::from(&line[9..]));
+                mirrors.push(String::from(url));
             }
         }
     }
