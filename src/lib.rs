@@ -2,10 +2,12 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+pub mod cli;
 mod error;
 mod event;
 mod http;
 mod render;
+use cli::Token;
 use error::Error;
 use http::Http;
 use render::Render;
@@ -36,6 +38,43 @@ const HEADERS: [&str; 9] = [
     "Dev dur s",
     "Score",
 ];
+
+pub struct Milcheck {
+    print_news: bool,
+}
+
+impl<'a> From<&Vec<Token<'a>>> for Milcheck {
+    fn from(tokens: &Vec<Token<'a>>) -> Self {
+        let print_news = tokens.iter().any(|token| {
+            if let Token::Option(flag, _) = token {
+                return flag.0 == "news";
+            }
+            false
+        });
+        Milcheck { print_news }
+    }
+}
+
+impl Milcheck {
+    pub fn run(&mut self) -> Result<(), Error> {
+        let (tx, rx) = mpsc::channel();
+        let mut render = Render::new();
+        let tx_cloned = Sender::clone(&tx);
+        match logic(tx_cloned, rx, &mut render) {
+            Ok(mirrors) => {
+                drop(tx);
+                render.finish()?;
+                print_mirrors(mirrors)?;
+            }
+            Err(err) => {
+                drop(tx);
+                render.finish()?;
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum MirrorState {
@@ -288,7 +327,7 @@ fn print_mirror<C: Color + Copy>(
     color: C,
 ) {
     let completion_color = if let Some(value) = mirror.completion {
-        if value < 100f64 && value >= 95f64 {
+        if (95f64..100f64).contains(&value) {
             format!("{}", Fg(Yellow))
         } else if value < 95f64 {
             format!("{}", Fg(Red))
@@ -465,23 +504,4 @@ pub fn logic(
     }
     tx.send("done")?;
     Ok(mirrors)
-}
-
-pub fn run() -> Result<(), Error> {
-    let (tx, rx) = mpsc::channel();
-    let mut render = Render::new();
-    let tx_cloned = Sender::clone(&tx);
-    match logic(tx_cloned, rx, &mut render) {
-        Ok(mirrors) => {
-            drop(tx);
-            render.finish()?;
-            print_mirrors(mirrors)?;
-        }
-        Err(err) => {
-            drop(tx);
-            render.finish()?;
-            return Err(err);
-        }
-    }
-    Ok(())
 }

@@ -5,19 +5,19 @@
 use std::env::Args;
 
 #[derive(Debug)]
-pub struct Parser {
+pub struct Parser<'a> {
     args: std::env::Args,
-    flags: Vec<Flag>,
+    flags: Vec<Flag<'a>>,
     binary: String,
 }
 
 #[derive(Debug)]
-pub struct Flag(pub &'static str, char, &'static str, bool);
+pub struct Flag<'a>(pub &'a str, char, &'a str, bool);
 
 #[derive(Debug)]
 pub enum Token<'a> {
     Argument(String),
-    Option(&'a Flag, Option<String>),
+    Option(&'a Flag<'a>, Option<String>),
     UnknownOpt(String),
 }
 
@@ -87,7 +87,7 @@ fn tokenize<'a>(args: &mut Args, flags: &'a [Flag]) -> Vec<Token<'a>> {
     tokens
 }
 
-pub fn normalize<'a>(tokens: &mut Vec<Token<'a>>) {
+pub fn normalize(tokens: &mut Vec<Token>) {
     let mut to_merge = vec![];
     let mut inc = 0;
     let mut token_iter = tokens.iter().enumerate().peekable();
@@ -108,8 +108,8 @@ pub fn normalize<'a>(tokens: &mut Vec<Token<'a>>) {
     }
 }
 
-impl Parser {
-    pub fn new(mut args: Args) -> Parser {
+impl<'a> Parser<'a> {
+    pub fn new(mut args: Args) -> Parser<'a> {
         let mut binary = env!("CARGO_PKG_NAME").to_string();
         if let Some(name) = args.next() {
             let path: Vec<&str> = name.split('/').collect();
@@ -134,12 +134,12 @@ impl Parser {
         short: char,
         long: &'static str,
         takes_value: bool,
-    ) -> &mut Parser {
+    ) -> &mut Parser<'a> {
         self.flags.push(Flag(name, short, long, takes_value));
         self
     }
 
-    pub fn help(&mut self) -> &mut Parser {
+    pub fn help(&mut self) -> &mut Parser<'a> {
         self.flags.push(Flag("help", 'h', "help", false));
         self
     }
@@ -149,12 +149,12 @@ impl Parser {
     // self
     // }
 
-    pub fn version(&mut self) -> &mut Parser {
+    pub fn version(&mut self) -> &mut Parser<'a> {
         self.flags.push(Flag("version", 'v', "version", false));
         self
     }
 
-    pub fn license(&mut self) -> &mut Parser {
+    pub fn license(&mut self) -> &mut Parser<'a> {
         self.flags.push(Flag("license", 'L', "license", false));
         self
     }
@@ -163,7 +163,7 @@ impl Parser {
     // self
     // }
 
-    pub fn parse(&mut self) -> Vec<Token> {
+    pub fn parse(&'a mut self) -> Vec<Token<'a>> {
         let mut tokens = tokenize(&mut self.args, &self.flags);
         normalize(&mut tokens);
         tokens
