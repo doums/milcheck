@@ -9,8 +9,10 @@ mod http;
 mod render;
 use cli::Token;
 use error::Error;
+use html2text::from_read;
 use http::Http;
 use render::Render;
+use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::fs;
@@ -20,8 +22,9 @@ use termion::color::{Color, Fg, Green, Red, Reset as ColorReset, Yellow};
 use termion::style::{Bold, Reset};
 
 const PACMAN_MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
-const MIRROR_STATUS_URI: &str = "https://www.archlinux.org/mirrors/status/";
-const MIRROR_STATUS_JSON_URI: &str = "https://www.archlinux.org/mirrors/status/json/";
+const MIRROR_STATUS_URL: &str = "https://www.archlinux.org/mirrors/status/";
+const MIRROR_STATUS_JSON_URL: &str = "https://www.archlinux.org/mirrors/status/json/";
+const ARCHLINUX_ORG_URL: &str = "https://archlinux.org/";
 const OUTOFSYNC_HTML_TAG: &str = "<table id=\"outofsync_mirrors\"";
 const INSYNC_HTML_TAG: &str = "<table id=\"successful_mirrors\"";
 const OK: &str = "Ok";
@@ -60,11 +63,14 @@ impl Milcheck {
         let (tx, rx) = mpsc::channel();
         let mut render = Render::new();
         let tx_cloned = Sender::clone(&tx);
-        match logic(tx_cloned, rx, &mut render) {
-            Ok(mirrors) => {
+        match logic(tx_cloned, rx, &mut render, self.print_news) {
+            Ok((mirrors, news)) => {
                 drop(tx);
                 render.finish()?;
                 print_mirrors(mirrors)?;
+                if let Some(t) = news {
+                    println!("{}", t);
+                }
             }
             Err(err) => {
                 drop(tx);
@@ -466,16 +472,25 @@ pub fn logic(
     tx: Sender<&'static str>,
     rx: Receiver<&'static str>,
     render: &mut Render,
-) -> Result<Vec<MirrorState>, Error> {
+    print_news: bool,
+) -> Result<(Vec<MirrorState>, Option<String>), Error> {
     let mut mirrors = vec![];
     render.run(rx);
     tx.send("parsing local mirrorlist")?;
     let mirrorlist = parse_mirrorlist()?;
     tx.send("fetching mirror status list")?;
-    let request = Http::get(MIRROR_STATUS_URI);
-    let json_request = Http::get(MIRROR_STATUS_JSON_URI);
+    let request = Http::get(MIRROR_STATUS_URL);
+    let json_request = Http::get(MIRROR_STATUS_JSON_URL);
+    let mut arch_orh_request = None;
+    if print_news {
+        arch_orh_request = Some(Http::get(ARCHLINUX_ORG_URL));
+    }
     let response = request.wait()?;
     let json_response = json_request.wait()?;
+    let mut org_response = None;
+    if let Some(req) = arch_orh_request {
+        org_response = Some(req.wait()?);
+    }
     tx.send("deserialize json data")?;
     let json: JsonResponse = serde_json::from_str(&json_response)
         .map_err(|err| format!("json response parsing failed: {}", err))?;
@@ -502,6 +517,21 @@ pub fn logic(
             mirrors.push(MirrorState::NotFound(server));
         }
     }
+    let news_text = if print_news {
+        if org_response.is_none() {
+            return Err(Error::new("fail to fetch archlinux.org data"));
+        }
+        let document = Html::parse_document(&org_response.unwrap());
+        let news_selector = Selector::parse("#news").unwrap();
+        let html = document
+            .select(&news_selector)
+            .fold(String::new(), |acc, element| {
+                format!("{}{}", acc, element.html())
+            });
+        Some(from_read(html.as_bytes(), 120))
+    } else {
+        None
+    };
     tx.send("done")?;
-    Ok(mirrors)
+    Ok((mirrors, news_text))
 }

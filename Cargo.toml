@@ -13,5 +13,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-termion = "1.5.5"
-reqwest = { version = "0.10", features = ["blocking"] }
+termion = "1.5.6"
+reqwest = { version = "0.11", features = ["blocking"] }
+scraper = "0.12.0"
+html2text = "0.2.1"
