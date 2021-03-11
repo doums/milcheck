@@ -12,7 +12,7 @@ use error::Error;
 use html2text::from_read;
 use http::Http;
 use render::Render;
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::fs;
@@ -68,8 +68,15 @@ impl Milcheck {
                 drop(tx);
                 render.finish()?;
                 print_mirrors(mirrors)?;
-                if let Some(t) = news {
-                    println!("{}", t);
+                if let Some(text) = news {
+                    let document = Html::parse_document(&text);
+                    let news_selector = Selector::parse("#news").unwrap();
+                    let rss_selector = Selector::parse(".rss-icon").unwrap();
+                    let html = document.select(&news_selector).next();
+                    // .fold(String::new(), |acc, element| {
+                    // format!("{}{}", acc, element.html())
+                    // });
+                    // println!("{}", from_read(html.as_bytes(), 120));
                 }
             }
             Err(err) => {
@@ -521,14 +528,7 @@ pub fn logic(
         if org_response.is_none() {
             return Err(Error::new("fail to fetch archlinux.org data"));
         }
-        let document = Html::parse_document(&org_response.unwrap());
-        let news_selector = Selector::parse("#news").unwrap();
-        let html = document
-            .select(&news_selector)
-            .fold(String::new(), |acc, element| {
-                format!("{}{}", acc, element.html())
-            });
-        Some(from_read(html.as_bytes(), 120))
+        org_response
     } else {
         None
     };
