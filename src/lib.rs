@@ -9,22 +9,29 @@ mod http;
 mod render;
 use cli::Token;
 use error::Error;
-use html2text::from_read;
+use html2text::{
+    from_read_rich,
+    render::text_renderer::{RichAnnotation, TaggedLineElement},
+};
 use http::Http;
 use render::Render;
-use scraper::{ElementRef, Html, Selector};
+use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::fs;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
-use termion::color::{Color, Fg, Green, Red, Reset as ColorReset, Yellow};
-use termion::style::{Bold, Reset};
+use termion::color::{
+    Blue, Color, Cyan, Fg, Green, LightBlue, LightMagenta, LightRed, LightYellow, Magenta, Red,
+    Reset as ColorReset, White, Yellow,
+};
+use termion::style::{Bold, Reset, Underline};
+use termion::terminal_size;
 
 const PACMAN_MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
 const MIRROR_STATUS_URL: &str = "https://www.archlinux.org/mirrors/status/";
 const MIRROR_STATUS_JSON_URL: &str = "https://www.archlinux.org/mirrors/status/json/";
-const ARCHLINUX_ORG_URL: &str = "https://archlinux.org/";
+const ARCHLINUX_ORG_URL: &str = "https://archlinux.org";
 const OUTOFSYNC_HTML_TAG: &str = "<table id=\"outofsync_mirrors\"";
 const INSYNC_HTML_TAG: &str = "<table id=\"successful_mirrors\"";
 const OK: &str = "Ok";
@@ -70,13 +77,55 @@ impl Milcheck {
                 print_mirrors(mirrors)?;
                 if let Some(text) = news {
                     let document = Html::parse_document(&text);
-                    let news_selector = Selector::parse("#news").unwrap();
-                    let rss_selector = Selector::parse(".rss-icon").unwrap();
-                    let html = document.select(&news_selector).next();
-                    // .fold(String::new(), |acc, element| {
-                    // format!("{}{}", acc, element.html())
-                    // });
-                    // println!("{}", from_read(html.as_bytes(), 120));
+                    let title_selector = Selector::parse("#news > h4").unwrap();
+                    let date_selector = Selector::parse("#news > .timestamp").unwrap();
+                    let content_selector = Selector::parse("#news > .article-content").unwrap();
+                    let dates = document
+                        .select(&date_selector)
+                        .map(|element| element.text().collect())
+                        .collect::<Vec<String>>();
+                    println!("{:#?}", dates);
+                    let contents = document
+                        .select(&content_selector)
+                        .map(|element| element.html())
+                        .collect::<Vec<String>>();
+                    let titles: Vec<String> = document
+                        .select(&title_selector)
+                        .map(|element| {
+                            element
+                                .select(&Selector::parse("a").unwrap())
+                                .map(|element| element.html())
+                                .next()
+                                .unwrap()
+                        })
+                        .collect();
+                    println!("titles {:#?}", titles);
+                    let tagged_lines =
+                        from_read_rich(titles[0].as_bytes(), terminal_size()?.0 as usize);
+                    let tagged_line = tagged_lines.first().ok_or_else(|| Error::new("fail"))?;
+                    if let TaggedLineElement::Str(tagged_string) = tagged_line
+                        .iter()
+                        .next()
+                        .ok_or_else(|| Error::new("fail"))?
+                    {
+                        if let RichAnnotation::Link(link) = tagged_string
+                            .tag
+                            .first()
+                            .ok_or_else(|| Error::new("fail"))?
+                        {
+                            println!(
+                                "{}{}{}{}\n{}{}{}{}",
+                                Bold,
+                                Fg(Blue),
+                                tagged_string.s,
+                                Reset,
+                                Underline,
+                                ARCHLINUX_ORG_URL,
+                                link,
+                                Reset
+                            );
+                        }
+                    };
                 }
             }
             Err(err) => {
@@ -488,14 +537,14 @@ pub fn logic(
     tx.send("fetching mirror status list")?;
     let request = Http::get(MIRROR_STATUS_URL);
     let json_request = Http::get(MIRROR_STATUS_JSON_URL);
-    let mut arch_orh_request = None;
+    let mut arch_org_request = None;
     if print_news {
-        arch_orh_request = Some(Http::get(ARCHLINUX_ORG_URL));
+        arch_org_request = Some(Http::get(ARCHLINUX_ORG_URL));
     }
     let response = request.wait()?;
     let json_response = json_request.wait()?;
     let mut org_response = None;
-    if let Some(req) = arch_orh_request {
+    if let Some(req) = arch_org_request {
         org_response = Some(req.wait()?);
     }
     tx.send("deserialize json data")?;
