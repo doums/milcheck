@@ -69,7 +69,7 @@ impl Milcheck {
                 render.finish()?;
                 print_mirrors(mirrors)?;
                 if let Some(text) = news {
-                    println!("\n{}", text);
+                    println!("{}", text);
                 }
             }
             Err(err) => {

@@ -22,7 +22,7 @@ USAGE:
 
 FLAGS:
     -h, --help Prints this message
-    -n, --news Prints the latest news in the output
+    -n, --news Prints the latest news
     -v, --version Prints version information
     -L, --license Prints license information",
                         env!("CARGO_PKG_NAME"),

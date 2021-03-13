@@ -24,7 +24,7 @@ impl<'a> Display for Article<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmtError> {
         write!(
             f,
-            "{}{}{}{} {}{}{}{}\n{}{}{}{}\n\n{}{}{}\n",
+            "{}{}{}{} {}{}{}{}\n{}{}{}{}\n\n{}{}{}",
             // date
             Italic,
             Fg(Magenta),
@@ -107,7 +107,7 @@ impl<'a> News<'a> {
         let articles = articles.fold(String::new(), |acc, article| {
             format!("{}\n{}", acc, article)
         });
-        Ok(format!("{}\n\n{}", output, articles))
+        Ok(format!("{}\n{}", output, articles))
     }
 }
 
