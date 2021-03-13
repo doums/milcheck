@@ -189,7 +189,7 @@ impl TextDecorator for ContentDecorator {
 
 fn parse_titles(document: &Html, arch_url: &str) -> Vec<(String, String)> {
     let title_selector = Selector::parse("#news > h4 > a").unwrap();
-    return document
+    document
         .select(&title_selector)
         .filter_map(|element| {
             let tagged_lines = from_read_rich(element.html().as_bytes(), 1024);
@@ -202,5 +202,5 @@ fn parse_titles(document: &Html, arch_url: &str) -> Vec<(String, String)> {
             }
             None
         })
-        .collect();
+        .collect()
 }
