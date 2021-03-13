@@ -68,9 +68,8 @@ impl Milcheck {
                 drop(tx);
                 render.finish()?;
                 print_mirrors(mirrors)?;
-                if let Some(html) = news {
-                    let mut news_parser = News::new(html, ARCHLINUX_ORG_URL);
-                    println!("{}", news_parser.parse()?);
+                if let Some(text) = news {
+                    println!("\n{}", text);
                 }
             }
             Err(err) => {
@@ -519,10 +518,12 @@ pub fn logic(
         }
     }
     let news_text = if print_news {
+        tx.send("parsing news data")?;
         if org_response.is_none() {
             return Err(Error::new("fail to fetch archlinux.org data"));
         }
-        org_response
+        let mut news_parser = News::new(org_response.unwrap(), ARCHLINUX_ORG_URL);
+        Some(news_parser.parse()?)
     } else {
         None
     };

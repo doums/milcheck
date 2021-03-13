@@ -1,14 +1,17 @@
-use std::vec;
-
 use crate::error::Error;
 use html2text::{
     from_read_rich, from_read_with_decorator,
     render::text_renderer::{RichAnnotation, TaggedLine, TaggedLineElement, TextDecorator},
 };
 use scraper::{Html, Selector};
-use termion::style::{Bold, CrossedOut, Reset as StyleReset, Underline};
+use std::fmt::{Display, Error as fmtError, Formatter};
+use std::vec;
+use termion::style::{Bold, Reset as StyleReset, Underline};
 use termion::terminal_size;
 use termion::{color::*, style::Italic};
+
+// https://tachyons.io/docs/typography/measure/
+const LINE_LENGTH: usize = 66;
 
 pub struct Article<'a> {
     title: &'a str,
@@ -17,8 +20,35 @@ pub struct Article<'a> {
     date: &'a str,
 }
 
+impl<'a> Display for Article<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmtError> {
+        write!(
+            f,
+            "{}{}{}{} {}{}{}{}\n{}{}{}{}\n\n{}{}{}\n",
+            // date
+            Italic,
+            Fg(Magenta),
+            self.date,
+            StyleReset,
+            // title
+            Bold,
+            Fg(Green),
+            self.title,
+            StyleReset,
+            // link
+            Underline,
+            Fg(Blue),
+            self.link,
+            StyleReset,
+            //content
+            StyleReset,
+            Fg(Reset),
+            self.content
+        )
+    }
+}
+
 pub struct News<'a> {
-    articles: Vec<Article<'a>>,
     raw_html: String,
     arch_url: &'a str,
 }
@@ -28,15 +58,14 @@ struct ContentDecorator(Vec<String>);
 
 impl<'a> News<'a> {
     pub fn new(raw_html: String, arch_url: &'a str) -> Self {
-        News {
-            articles: vec![],
-            raw_html,
-            arch_url,
-        }
+        News { raw_html, arch_url }
     }
 
     pub fn parse(&mut self) -> Result<String, Error> {
-        let term_width = terminal_size()?.0 as usize;
+        let mut term_width = terminal_size()?.0 as usize;
+        if term_width > LINE_LENGTH {
+            term_width = LINE_LENGTH;
+        }
         let document = Html::parse_document(&self.raw_html);
         let date_selector = Selector::parse("#news > .timestamp").unwrap();
         let content_selector = Selector::parse("#news > .article-content").unwrap();
@@ -51,9 +80,34 @@ impl<'a> News<'a> {
                 from_read_with_decorator(element.as_bytes(), term_width, ContentDecorator(vec![]))
             })
             .collect();
-        println!("{:#?}", contents[1]);
         let titles = parse_titles(&document, self.arch_url);
-        Ok("eheh".to_string())
+        if ![titles.len(), dates.len(), contents.len()]
+            .iter()
+            .all(|&count| count == titles.len())
+        {
+            return Err(Error::new("failed to parse news data"));
+        }
+        let articles = titles.iter().enumerate().map(|(i, val)| Article {
+            title: &val.0,
+            link: &val.1,
+            content: &contents[i],
+            date: &dates[i],
+        });
+        let output = format!(
+            "{}{}Latest News{}\n{}{}{}/news{}{}",
+            Bold,
+            Fg(Yellow),
+            StyleReset,
+            Underline,
+            Fg(Blue),
+            self.arch_url,
+            StyleReset,
+            Fg(Reset)
+        );
+        let articles = articles.fold(String::new(), |acc, article| {
+            format!("{}\n{}", acc, article)
+        });
+        Ok(format!("{}\n\n{}", output, articles))
     }
 }
 
@@ -63,58 +117,45 @@ impl TextDecorator for ContentDecorator {
     fn decorate_link_start(&mut self, url: &str) -> (String, Self::Annotation) {
         self.0.push(url.to_string());
         (
-            format!(
-                "{}{}{}* {}{}",
-                Italic,
-                Fg(Black),
-                self.0.len() + 1,
-                StyleReset,
-                Fg(Blue)
-            ),
+            format!(">[{}] ", self.0.len()),
             RichAnnotation::Link(url.to_string()),
         )
     }
 
     fn decorate_link_end(&mut self) -> String {
-        format!("{}", Fg(Reset))
+        "<".to_string()
     }
 
     fn decorate_em_start(&mut self) -> (String, Self::Annotation) {
-        (
-            format!("{}{}", Italic, Fg(Magenta)),
-            RichAnnotation::Emphasis,
-        )
+        ("_".to_string(), RichAnnotation::Emphasis)
     }
 
     fn decorate_em_end(&mut self) -> String {
-        format!("{}{}", Fg(Reset), StyleReset)
+        "_".to_string()
     }
 
     fn decorate_strong_start(&mut self) -> (String, Self::Annotation) {
-        (format!("{}{}", Bold, Fg(Green)), RichAnnotation::Strong)
+        ("*".to_string(), RichAnnotation::Strong)
     }
 
     fn decorate_strong_end(&mut self) -> String {
-        format!("{}{}", Fg(Reset), StyleReset)
+        "*".to_string()
     }
 
     fn decorate_strikeout_start(&mut self) -> (String, Self::Annotation) {
-        (
-            format!("{}{}", CrossedOut, Fg(Red)),
-            RichAnnotation::Strikeout,
-        )
+        ("~".to_string(), RichAnnotation::Strikeout)
     }
 
     fn decorate_strikeout_end(&mut self) -> String {
-        format!("{}{}", Fg(Reset), StyleReset)
+        "~".to_string()
     }
 
     fn decorate_code_start(&mut self) -> (String, Self::Annotation) {
-        (format!("{}", Fg(Yellow)), RichAnnotation::Code)
+        ("`".to_string(), RichAnnotation::Code)
     }
 
     fn decorate_code_end(&mut self) -> String {
-        format!("{}", Fg(Reset))
+        "`".to_string()
     }
 
     fn decorate_preformat_first(&mut self) -> Self::Annotation {
@@ -127,17 +168,7 @@ impl TextDecorator for ContentDecorator {
 
     fn decorate_image(&mut self, title: &str) -> (String, Self::Annotation) {
         self.0.push(title.to_string());
-        (
-            format!(
-                "{}{}{}* {}{}",
-                Italic,
-                Fg(Black),
-                self.0.len() + 1,
-                StyleReset,
-                Fg(Blue)
-            ),
-            RichAnnotation::Image,
-        )
+        (format!("[I][{}] ", self.0.len()), RichAnnotation::Image)
     }
 
     fn make_subblock_decorator(&self) -> Self {
@@ -145,7 +176,14 @@ impl TextDecorator for ContentDecorator {
     }
 
     fn finalise(self) -> Vec<TaggedLine<Self::Annotation>> {
-        vec![]
+        let mut lines = vec![];
+        self.0.iter().enumerate().for_each(|(i, val)| {
+            lines.push(TaggedLine::from_string(
+                format!("[{}] {}", i + 1, val),
+                &RichAnnotation::Default,
+            ))
+        });
+        lines
     }
 }
 
