@@ -44,7 +44,6 @@ impl<'a> News<'a> {
             .select(&date_selector)
             .map(|element| element.text().collect())
             .collect::<Vec<String>>();
-        println!("{:#?}", dates);
         let contents: Vec<String> = document
             .select(&content_selector)
             .map(|element| element.html())
@@ -52,7 +51,7 @@ impl<'a> News<'a> {
                 from_read_with_decorator(element.as_bytes(), term_width, ContentDecorator(vec![]))
             })
             .collect();
-        println!("{:#?}", contents[0]);
+        println!("{:#?}", contents[1]);
         let titles = parse_titles(&document, self.arch_url);
         Ok("eheh".to_string())
     }
@@ -64,15 +63,14 @@ impl TextDecorator for ContentDecorator {
     fn decorate_link_start(&mut self, url: &str) -> (String, Self::Annotation) {
         self.0.push(url.to_string());
         (
-            format!("{}{}* {}", Fg(Black), self.0.len() + 1, Fg(Blue)),
-            // format!(
-            // "{}{}{}* {}{}",
-            // Italic,
-            // Fg(Black),
-            // self.0.len() + 1,
-            // StyleReset,
-            // Fg(Blue)
-            // ),
+            format!(
+                "{}{}{}* {}{}",
+                Italic,
+                Fg(Black),
+                self.0.len() + 1,
+                StyleReset,
+                Fg(Blue)
+            ),
             RichAnnotation::Link(url.to_string()),
         )
     }
@@ -82,27 +80,22 @@ impl TextDecorator for ContentDecorator {
     }
 
     fn decorate_em_start(&mut self) -> (String, Self::Annotation) {
-        (format!("{}", Fg(Magenta)), RichAnnotation::Emphasis)
-        // (
-        // format!("{}{}", Italic, Fg(Magenta)),
-        // RichAnnotation::Emphasis,
-        // )
+        (
+            format!("{}{}", Italic, Fg(Magenta)),
+            RichAnnotation::Emphasis,
+        )
     }
 
     fn decorate_em_end(&mut self) -> String {
-        // format!("{}{}", Fg(Reset), StyleReset)
-        format!("{}", Fg(Reset))
+        format!("{}{}", Fg(Reset), StyleReset)
     }
 
     fn decorate_strong_start(&mut self) -> (String, Self::Annotation) {
-        // (format!("{}{}", Bold, Fg(Blue)), RichAnnotation::Strong)
-        println!("{:#?}", format!("{}", Fg(Blue)));
-        (format!("{}", Fg(Blue)), RichAnnotation::Strong)
+        (format!("{}{}", Bold, Fg(Green)), RichAnnotation::Strong)
     }
 
     fn decorate_strong_end(&mut self) -> String {
-        // format!("{}{}", Fg(Reset), StyleReset)
-        format!("{}", Fg(Reset))
+        format!("{}{}", Fg(Reset), StyleReset)
     }
 
     fn decorate_strikeout_start(&mut self) -> (String, Self::Annotation) {
@@ -135,15 +128,14 @@ impl TextDecorator for ContentDecorator {
     fn decorate_image(&mut self, title: &str) -> (String, Self::Annotation) {
         self.0.push(title.to_string());
         (
-            format!("{}{}* {}", Fg(Black), self.0.len() + 1, Fg(Blue)),
-            // format!(
-            // "{}{}{}* {}{}",
-            // Italic,
-            // Fg(Black),
-            // self.0.len() + 1,
-            // StyleReset,
-            // Fg(Blue)
-            // ),
+            format!(
+                "{}{}{}* {}{}",
+                Italic,
+                Fg(Black),
+                self.0.len() + 1,
+                StyleReset,
+                Fg(Blue)
+            ),
             RichAnnotation::Image,
         )
     }
