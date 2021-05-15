@@ -167,11 +167,7 @@ impl Mirror {
 
 impl From<&JsonMirror> for Mirror {
     fn from(json: &JsonMirror) -> Self {
-        let completion = if let Some(completion) = json.completion_pct {
-            Some(completion * 100f64)
-        } else {
-            None
-        };
+        let completion = json.completion_pct.map(|completion| completion * 100f64);
         let delay = if let Some(delay) = json.delay {
             let hours = delay as f64 / 3600_f64;
             let normalized_hours = hours.trunc() as u32;
