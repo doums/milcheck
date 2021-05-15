@@ -1,5 +1,5 @@
 [![milcheck](https://img.shields.io/github/workflow/status/doums/milcheck/Rust?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=github&style=for-the-badge)](https://github.com/doums/milcheck/actions?query=workflow%3ARust)
-[![milcheck](https://img.shields.io/aur/version/milcheck-bin?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=arch-linux&style=for-the-badge)](https://aur.archlinux.org/packages/milcheck-bin/)
+[![milcheck](https://img.shields.io/aur/version/milcheck?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=arch-linux&style=for-the-badge)](https://aur.archlinux.org/packages/milcheck/)
 
 ## milcheck
 
@@ -37,7 +37,7 @@ cargo install milcheck
 
 ### Arch Linux AUR package
 
-milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck-bin) in the Arch User Repository.
+milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck) in the Arch User Repository.
 
 ### Build from sources
 
