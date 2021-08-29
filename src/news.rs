@@ -55,14 +55,19 @@ impl<'a> Display for Article<'a> {
 pub struct News<'a> {
     raw_html: String,
     arch_url: &'a str,
+    last: Option<usize>,
 }
 
 #[derive(Debug)]
 struct ContentDecorator(Vec<String>);
 
 impl<'a> News<'a> {
-    pub fn new(raw_html: String, arch_url: &'a str) -> Self {
-        News { raw_html, arch_url }
+    pub fn new(raw_html: String, arch_url: &'a str, last: Option<usize>) -> Self {
+        News {
+            raw_html,
+            arch_url,
+            last,
+        }
     }
 
     pub fn parse(&mut self) -> Result<String, Error> {
@@ -91,12 +96,19 @@ impl<'a> News<'a> {
         {
             return Err(Error::new("failed to parse news data"));
         }
-        let articles = titles.iter().enumerate().map(|(i, val)| Article {
-            title: &val.0,
-            link: &val.1,
-            content: &contents[i],
-            date: &dates[i],
-        });
+        let mut articles: Vec<Article> = titles
+            .iter()
+            .enumerate()
+            .map(|(i, val)| Article {
+                title: &val.0,
+                link: &val.1,
+                content: &contents[i],
+                date: &dates[i],
+            })
+            .collect();
+        if let Some(last) = self.last {
+            articles.truncate(last);
+        };
         let output = format!(
             "{}{}Latest News{}\n{}{}{}/news{}{}",
             Bold,
@@ -108,7 +120,7 @@ impl<'a> News<'a> {
             StyleReset,
             Fg(Reset)
         );
-        let articles = articles.fold(String::new(), |acc, article| {
+        let articles = articles.iter().fold(String::new(), |acc, article| {
             format!("{}\n{}", acc, article)
         });
         Ok(format!("{}\n{}", output, articles))

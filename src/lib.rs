@@ -15,6 +15,7 @@ use news::News;
 use render::Render;
 use serde::{Deserialize, Serialize};
 use std::cmp;
+use std::convert::TryFrom;
 use std::fs;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -44,17 +45,30 @@ const HEADERS: [&str; 9] = [
 
 pub struct Milcheck {
     print_news: bool,
+    last: Option<usize>,
 }
 
-impl<'a> From<&Vec<Token<'a>>> for Milcheck {
-    fn from(tokens: &Vec<Token<'a>>) -> Self {
-        let print_news = tokens.iter().any(|token| {
-            if let Token::Option(flag, _) = token {
-                return flag.0 == "news";
+impl<'a> TryFrom<&Vec<Token<'a>>> for Milcheck {
+    type Error = &'static str;
+
+    fn try_from(tokens: &Vec<Token<'a>>) -> Result<Self, Self::Error> {
+        let mut print_news = false;
+        let mut last: Option<usize> = None;
+        for token in tokens {
+            if let Token::Option(flag, opt_arg) = token {
+                if flag.0 == "news" {
+                    print_news = true;
+                }
+                if let Some(v) = opt_arg {
+                    last = Some(
+                        v.parse::<usize>()
+                            .map_err(|_| "\"news\" option: expecting a positive number")?,
+                    );
+                }
+                break;
             }
-            false
-        });
-        Milcheck { print_news }
+        }
+        Ok(Milcheck { print_news, last })
     }
 }
 
@@ -63,7 +77,7 @@ impl Milcheck {
         let (tx, rx) = mpsc::channel();
         let mut render = Render::new();
         let tx_cloned = Sender::clone(&tx);
-        match logic(tx_cloned, rx, &mut render, self.print_news) {
+        match logic(tx_cloned, rx, &mut render, self.print_news, self.last) {
             Ok((mirrors, news)) => {
                 drop(tx);
                 render.finish()?;
@@ -425,10 +439,10 @@ fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
                 );
             }
             MirrorState::OutOfSync(mirror) => {
-                print_mirror(&max_lengths, &mirror, OUT_OF_SYNC, Red);
+                print_mirror(&max_lengths, mirror, OUT_OF_SYNC, Red);
             }
             MirrorState::Synced(mirror) => {
-                print_mirror(&max_lengths, &mirror, OK, Green);
+                print_mirror(&max_lengths, mirror, OK, Green);
             }
         }
     }
@@ -469,6 +483,7 @@ pub fn logic(
     rx: Receiver<&'static str>,
     render: &mut Render,
     print_news: bool,
+    last: Option<usize>,
 ) -> Result<(Vec<MirrorState>, Option<String>), Error> {
     let mut mirrors = vec![];
     render.run(rx);
@@ -495,10 +510,10 @@ pub fn logic(
     if v.len() != 4 {
         return Err(Error::new("web scraping failed"));
     }
-    if v[0].find(OUTOFSYNC_HTML_TAG).is_none() {
+    if !v[0].contains(OUTOFSYNC_HTML_TAG) {
         return Err(Error::new("web scraping failed"));
     }
-    if v[1].find(INSYNC_HTML_TAG).is_none() {
+    if !v[1].contains(INSYNC_HTML_TAG) {
         return Err(Error::new("web scraping failed"));
     }
     tx.send("building data")?;
@@ -518,7 +533,7 @@ pub fn logic(
         if org_response.is_none() {
             return Err(Error::new("fail to fetch archlinux.org data"));
         }
-        let mut news_parser = News::new(org_response.unwrap(), ARCHLINUX_ORG_URL);
+        let mut news_parser = News::new(org_response.unwrap(), ARCHLINUX_ORG_URL, last);
         Some(news_parser.parse()?)
     } else {
         None

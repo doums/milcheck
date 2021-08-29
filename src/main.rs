@@ -4,6 +4,7 @@
 
 use milcheck::cli::{Parser, Token};
 use milcheck::Milcheck;
+use std::convert::TryFrom;
 use std::env;
 use std::process;
 
@@ -22,7 +23,7 @@ USAGE:
 
 FLAGS:
     -h, --help Prints this message
-    -n, --news Prints the latest news
+    -n, --news [max news number] Prints the latest news
     -v, --version Prints version information
     -L, --license Prints license information",
                         env!("CARGO_PKG_NAME"),
@@ -63,13 +64,16 @@ fn main() {
         .help()
         .version()
         .license()
-        .flag("news", 'n', "news", false)
+        .flag("news", 'n', "news", true)
         .parse();
     handle_args(&parsed, binary_name).unwrap_or_else(|err| {
         eprintln!("{}", err);
         process::exit(1);
     });
-    let mut milcheck = Milcheck::from(&parsed);
+    let mut milcheck = Milcheck::try_from(&parsed).unwrap_or_else(|err| {
+        eprintln!("{}, run milcheck --help", err);
+        process::exit(1);
+    });
     milcheck.run().unwrap_or_else(|err| {
         eprintln!("error: {}", err);
         process::exit(1);

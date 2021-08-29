@@ -21,48 +21,52 @@ pub enum Token<'a> {
     UnknownOpt(String),
 }
 
-fn parse_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'a>>) {
+fn parse_token<'a>(options: &'a [Flag], arg: &str) -> Vec<Token<'a>> {
     let current_arg = &arg[1..];
+    let mut tokens = vec![];
     for (i, c) in current_arg.char_indices() {
         if let Some(option) = options.iter().find(|option| c == option.1) {
             if option.3 {
                 if i + 1 < current_arg.len() {
-                    let arg_opt = &current_arg[i + 1..];
-                    tokens.push(Token::Option(&option, Some(String::from(arg_opt))));
+                    tokens.push(Token::Option(
+                        option,
+                        Some(String::from(&current_arg[i + 1..])),
+                    ));
                     break;
                 } else {
-                    tokens.push(Token::Option(&option, None));
+                    tokens.push(Token::Option(option, None));
                 }
             } else {
-                tokens.push(Token::Option(&option, None));
+                tokens.push(Token::Option(option, None));
             }
         } else {
             tokens.push(Token::UnknownOpt(c.to_string()));
         }
     }
+    tokens
 }
 
-fn parse_long_token<'a>(options: &'a [Flag], arg: &str, tokens: &mut Vec<Token<'a>>) {
+fn parse_long_token<'a>(options: &'a [Flag], arg: &str) -> Token<'a> {
     let current_arg = &arg[2..];
     match current_arg.find('=') {
         None => {
-            if let Some(option) = options.iter().find(|option| current_arg == option.2) {
-                tokens.push(Token::Option(&option, None));
+            return if let Some(option) = options.iter().find(|option| current_arg == option.2) {
+                Token::Option(option, None)
             } else {
-                tokens.push(Token::UnknownOpt(current_arg.to_string()));
+                Token::UnknownOpt(current_arg.to_string())
             }
         }
         Some(i) => {
             let first = &current_arg[..i];
             let last = &current_arg[i + 1..];
             if let Some(option) = options.iter().find(|option| first == option.2) {
-                if option.3 && !last.is_empty() {
-                    tokens.push(Token::Option(&option, Some(String::from(last))));
+                return if option.3 && !last.is_empty() {
+                    Token::Option(option, Some(String::from(last)))
                 } else {
-                    tokens.push(Token::Option(&option, None));
-                }
+                    Token::Option(option, None)
+                };
             } else {
-                tokens.push(Token::UnknownOpt(current_arg.to_string()));
+                Token::UnknownOpt(current_arg.to_string())
             }
         }
     }
@@ -72,14 +76,22 @@ fn tokenize<'a>(args: &mut Args, flags: &'a [Flag]) -> Vec<Token<'a>> {
     let mut tokens = vec![];
     let mut accept_opt = true;
     for arg in args {
+        if !tokens.is_empty() {
+            let tokens_len = tokens.len();
+            let prev_token = &tokens[tokens_len - 1];
+            if let Token::Option(opt, None) = prev_token {
+                tokens[tokens_len - 1] = Token::Option(opt, Some(String::from(&arg)));
+                continue;
+            }
+        }
         if arg == "-" {
             tokens.push(Token::Argument(String::from("-")));
         } else if arg == "--" {
             accept_opt = false;
         } else if arg.len() > 2 && arg.starts_with("--") && accept_opt {
-            parse_long_token(flags, &arg, &mut tokens);
+            tokens.push(parse_long_token(flags, &arg));
         } else if arg.len() > 1 && arg.starts_with('-') && accept_opt {
-            parse_token(flags, &arg, &mut tokens);
+            tokens.append(&mut parse_token(flags, &arg));
         } else {
             tokens.push(Token::Argument(arg));
         }

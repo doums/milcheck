@@ -7,7 +7,7 @@
 
 ![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
 
-A small binary that displays the status of your pacman mirrorlist in your terminal
+A small binary that displays the status of your pacman mirrorlist in your terminal and optionally the lastest news
 
 ### How ?
 
@@ -57,6 +57,11 @@ the binary is located under `target/debug` or `target/release`
 
 ```
 milcheck
+```
+
+you can print the lastest news, handy to stay informed
+```
+milcheck -n
 ```
 
 ### License
