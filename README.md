@@ -7,26 +7,28 @@
 
 ![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
 
-A small binary that displays the status of your pacman mirrorlist in your terminal and optionally the lastest news
+A simple program that displays the status of your pacman
+mirrorlist and the Arch Linux lastest news right in your terminal
 
 ### How ?
 
-milcheck just reads your `/etc/pacman.d/mirrorlist` and retrieves the corresponding data from the official [mirror status page](https://www.archlinux.org/mirrors/status/)
+Milcheck just reads your `/etc/pacman.d/mirrorlist` and retrieves
+the corresponding data from the official
+[mirror status page](https://www.archlinux.org/mirrors/status/).
+
+The latest news are directly scraped from https://archlinux.org/.
 
 ### Why ?
 
-As explained in the [mirror doc](https://wiki.archlinux.org/index.php/Mirrors),\
-before a system upgrade i.e. `sudo pacman -Syu`, you must check that the mirrors in your mirrorlist are up to date e.g. not out of sync.
+As explained in the
+[mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before
+a system upgrade i.e. `sudo pacman -Syu`, you should check that
+the mirrors in your mirrorlist are up to date e.g. not out of
+sync.
 
 ### It's not
 
-..an additional mirrorlist ranking utility
-
-### Install
-
-Rust is a language that compiles to native code and by default statically links all dependencies.\
-Simply download the latest [release](https://github.com/doums/milcheck/releases) of the precompiled binary and use it!
-(do not forget to make it executable `chmod 755 milcheck`)
+..an additional mirrorlist ranking utility.
 
 ### Install from [crates.io](https://crates.io/crates/milcheck)
 
@@ -37,7 +39,9 @@ cargo install milcheck
 
 ### Arch Linux AUR package
 
-milcheck is present as a [package](https://aur.archlinux.org/packages/milcheck) in the Arch User Repository.
+Milcheck is present as a
+[package](https://aur.archlinux.org/packages/milcheck) in the Arch
+User Repository.
 
 ### Build from sources
 
@@ -51,7 +55,13 @@ to build for release
 ```
 cargo build --release
 ```
-the binary is located under `target/debug` or `target/release`
+the binary is located under `target/debug` or `target/release`.
+
+### Pre-built binary
+
+Rust is a language that compiles to native code and by default
+statically links. Simply download the pre-built binary from latest
+[release](https://github.com/doums/milcheck/releases/latest).
 
 ### Usage
 
@@ -59,7 +69,8 @@ the binary is located under `target/debug` or `target/release`
 milcheck
 ```
 
-you can print the lastest news, handy to stay informed
+In addition to the mirrorlist output you can print the Arch Linux
+[lastest news](https://archlinux.org/), handy to stay informed:
 ```
 milcheck -n
 ```

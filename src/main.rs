@@ -40,10 +40,16 @@ FLAGS:
                     process::exit(0);
                 }
             }
-            Token::UnknownOpt(option) => {
+            Token::UnknownFlag(option) => {
                 return Err(format!(
                     "unknown option \"{}\", run {} --help",
                     option, binary_name
+                ));
+            }
+            Token::UnknownShortFlag(c) => {
+                return Err(format!(
+                    "unknown option \"{}\", run {} --help",
+                    c, binary_name
                 ));
             }
             Token::Argument(arg) => {
@@ -58,7 +64,7 @@ FLAGS:
 }
 
 fn main() {
-    let mut parser = Parser::new(env::args());
+    let mut parser = Parser::from(env::args());
     let binary_name = parser.binary_name();
     let parsed = parser
         .help()

@@ -1,10 +1,10 @@
 [package]
 name = "milcheck"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["pierre <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2018"
-description = "A small binary that displays the status of your pacman mirrorlist in your terminal"
+description = "A simple program that displays the status of your pacman mirrorlist and the Arch Linux lastest news right in your terminal"
 repository = "https://github.com/doums/milcheck"
 readme = "README.md"
 keywords = ["archlinux", "pacman", "mirror", "mirrorlist"]
