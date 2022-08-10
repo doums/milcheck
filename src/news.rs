@@ -191,6 +191,27 @@ impl TextDecorator for ContentDecorator {
         ContentDecorator(vec![])
     }
 
+    fn header_prefix(&mut self, level: usize) -> String {
+        let mut s = String::with_capacity(level + 1);
+        for _ in 0..level {
+            s.push('#')
+        }
+        s.push(' ');
+        s
+    }
+
+    fn quote_prefix(&mut self) -> String {
+        "› ".to_string()
+    }
+
+    fn unordered_item_prefix(&mut self) -> String {
+        "• ".to_string()
+    }
+
+    fn ordered_item_prefix(&mut self, i: i64) -> String {
+        format!("{}. ", i)
+    }
+
     fn finalise(self) -> Vec<TaggedLine<Self::Annotation>> {
         let mut lines = vec![];
         self.0.iter().enumerate().for_each(|(i, val)| {
