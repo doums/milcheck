@@ -12,16 +12,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Lint
-      run: cargo clippy
-    - name: Test
-      run: cargo test
-    - name: Build
-      run: cargo build --release --locked
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: target/release/milcheck
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v3
+      - name: Lint
+        run: cargo clippy
+      # - name: Test
+      #   run: cargo test
+      - name: Build
+        run: cargo build --release --locked
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/release/milcheck
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
