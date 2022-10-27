@@ -2,13 +2,11 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-pub mod cli;
 mod error;
 mod event;
 mod http;
 mod news;
 mod render;
-use cli::Token;
 use error::Error;
 use http::Http;
 use news::News;
@@ -45,28 +43,18 @@ const HEADERS: [&str; 9] = [
 
 pub struct Milcheck {
     print_news: bool,
-    last: Option<usize>,
+    last: Option<u8>,
 }
 
-impl<'a> TryFrom<&Vec<Token<'a>>> for Milcheck {
+impl TryFrom<Option<u8>> for Milcheck {
     type Error = &'static str;
 
-    fn try_from(tokens: &Vec<Token<'a>>) -> Result<Self, Self::Error> {
+    fn try_from(news: Option<u8>) -> Result<Self, Self::Error> {
         let mut print_news = false;
-        let mut last: Option<usize> = None;
-        for token in tokens {
-            if let Token::Option(flag, opt_arg) = token {
-                if flag.0 == "news" {
-                    print_news = true;
-                }
-                if let Some(v) = opt_arg {
-                    last = Some(
-                        v.parse::<usize>()
-                            .map_err(|_| "\"news\" option: expecting a positive number")?,
-                    );
-                }
-                break;
-            }
+        let mut last: Option<u8> = None;
+        if let Some(n) = news {
+            print_news = true;
+            last = Some(n);
         }
         Ok(Milcheck { print_news, last })
     }
@@ -483,7 +471,7 @@ pub fn logic(
     rx: Receiver<&'static str>,
     render: &mut Render,
     print_news: bool,
-    last: Option<usize>,
+    last: Option<u8>,
 ) -> Result<(Vec<MirrorState>, Option<String>), Error> {
     let mut mirrors = vec![];
     render.run(rx);

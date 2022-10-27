@@ -55,14 +55,14 @@ impl<'a> Display for Article<'a> {
 pub struct News<'a> {
     raw_html: String,
     arch_url: &'a str,
-    last: Option<usize>,
+    last: Option<u8>,
 }
 
 #[derive(Debug)]
 struct ContentDecorator(Vec<String>);
 
 impl<'a> News<'a> {
-    pub fn new(raw_html: String, arch_url: &'a str, last: Option<usize>) -> Self {
+    pub fn new(raw_html: String, arch_url: &'a str, last: Option<u8>) -> Self {
         News {
             raw_html,
             arch_url,
@@ -107,7 +107,7 @@ impl<'a> News<'a> {
             })
             .collect();
         if let Some(last) = self.last {
-            articles.truncate(last);
+            articles.truncate(last as usize);
         };
         let output = format!(
             "{}{}Latest News{}\n{}{}{}/news{}{}",

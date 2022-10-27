@@ -1,10 +1,10 @@
 [package]
 name = "milcheck"
-version = "0.2.7"
-authors = ["pierre <dommerc.pierre@gmail.com>"]
+version = "0.2.8"
+authors = ["Pierre D. <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2021"
-description = "A simple program that displays the status of your pacman mirrorlist and the Arch Linux lastest news right in your terminal"
+description = "A small CLI that displays the status of your pacman mirrorlist and the Arch Linux lastest news right in your terminal"
 repository = "https://github.com/doums/milcheck"
 readme = "README.md"
 keywords = ["archlinux", "pacman", "mirror", "mirrorlist"]
@@ -17,3 +17,4 @@ termion = "1.5.6"
 reqwest = { version = "0.11", features = ["blocking"] }
 scraper = "0.13.0"
 html2text = "0.4"
+clap = { version = "4.0", features = ["derive"] }
