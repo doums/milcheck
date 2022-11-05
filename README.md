@@ -7,8 +7,8 @@
 
 ![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
 
-A simple program that displays the status of your pacman
-mirrorlist and the Arch Linux lastest news right in your terminal
+A simple CLI that displays the status of your pacman mirrorlist
+and the Arch Linux latest news right in the terminal
 
 ### How ?
 
@@ -32,7 +32,8 @@ sync.
 
 ### Install from [crates.io](https://crates.io/crates/milcheck)
 
-install Rust -> https://www.rust-lang.org/tools/install
+Install Rust -> https://www.rust-lang.org/tools/install
+
 ```
 cargo install milcheck
 ```
@@ -45,17 +46,21 @@ User Repository.
 
 ### Build from sources
 
-install Rust -> https://www.rust-lang.org/tools/install
+Install Rust -> https://www.rust-lang.org/tools/install
+
 ```
 git clone https://github.com/doums/milcheck.git
 cd milcheck
 cargo build
 ```
-to build for release
+
+To build for release
+
 ```
 cargo build --release
 ```
-the binary is located under `target/debug` or `target/release`.
+
+The binary is located under `target/debug` or `target/release`.
 
 ### Pre-built binary
 
@@ -71,9 +76,11 @@ milcheck
 
 In addition to the mirrorlist output you can print the Arch Linux
 [lastest news](https://archlinux.org/), handy to stay informed:
+
 ```
 milcheck -n
 ```
 
 ### License
+
 Mozilla Public License 2.0
