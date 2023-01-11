@@ -1,6 +1,6 @@
 [package]
 name = "milcheck"
-version = "0.2.9"
+version = "0.3.0"
 authors = ["Pierre D. <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2021"
@@ -18,3 +18,8 @@ reqwest = { version = "0.11", features = ["blocking"] }
 scraper = "0.13.0"
 html2text = "0.4"
 clap = { version = "4.0", features = ["derive"] }
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true

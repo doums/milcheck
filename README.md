@@ -1,4 +1,4 @@
-[![milcheck](https://img.shields.io/github/actions/workflow/status/doums/milcheck/rust.yml?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=github&style=for-the-badge)](https://github.com/doums/milcheck/actions?query=workflow%3ARust)
+[![milcheck](https://img.shields.io/github/actions/workflow/status/doums/milcheck/test.yml?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=github&style=for-the-badge)](https://github.com/doums/milcheck/actions?query=workflow%3ATest)
 [![milcheck](https://img.shields.io/aur/version/milcheck?color=0D0D0D&logoColor=BFBFBF&labelColor=404040&logo=arch-linux&style=for-the-badge)](https://aur.archlinux.org/packages/milcheck/)
 
 ## milcheck
@@ -7,7 +7,7 @@
 
 ![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
 
-A simple CLI that displays the status of your pacman mirrorlist
+A CLI that displays the status of your pacman mirrorlist
 and the Arch Linux latest news right in the terminal
 
 ### How ?
