@@ -30,43 +30,10 @@ sync.
 
 ..an additional mirrorlist ranking utility.
 
-### Install from [crates.io](https://crates.io/crates/milcheck)
+### Install
 
-Install Rust -> https://www.rust-lang.org/tools/install
-
-```
-cargo install milcheck
-```
-
-### Arch Linux AUR package
-
-Milcheck is present as a
-[package](https://aur.archlinux.org/packages/milcheck) in the Arch
-User Repository.
-
-### Build from sources
-
-Install Rust -> https://www.rust-lang.org/tools/install
-
-```
-git clone https://github.com/doums/milcheck.git
-cd milcheck
-cargo build
-```
-
-To build for release
-
-```
-cargo build --release
-```
-
-The binary is located under `target/debug` or `target/release`.
-
-### Pre-built binary
-
-Rust is a language that compiles to native code and by default
-statically links. Simply download the pre-built binary from latest
-[release](https://github.com/doums/milcheck/releases/latest).
+- latest [release](https://github.com/doums/milcheck/releases/latest)
+- AUR [package](https://aur.archlinux.org/packages/milcheck)
 
 ### Usage
 
