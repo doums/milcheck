@@ -1,6 +1,6 @@
 [package]
 name = "milcheck"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Pierre D. <dommerc.pierre@gmail.com>"]
 license = "MPL-2.0"
 edition = "2021"
@@ -15,8 +15,8 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 termion = "1.5.6"
 reqwest = { version = "0.11", features = ["blocking"] }
-scraper = "0.13.0"
-html2text = "0.4"
+scraper = "0.15.0"
+html2text = "0.5"
 clap = { version = "4.0", features = ["derive"] }
 
 [profile.release]

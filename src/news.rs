@@ -182,9 +182,12 @@ impl TextDecorator for ContentDecorator {
         RichAnnotation::Preformat(true)
     }
 
-    fn decorate_image(&mut self, title: &str) -> (String, Self::Annotation) {
+    fn decorate_image(&mut self, src: &str, title: &str) -> (String, Self::Annotation) {
         self.0.push(title.to_string());
-        (format!("[I][{}] ", self.0.len()), RichAnnotation::Image)
+        (
+            format!("[I][{}] ", self.0.len()),
+            RichAnnotation::Image(src.into()),
+        )
     }
 
     fn make_subblock_decorator(&self) -> Self {
