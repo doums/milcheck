@@ -23,7 +23,7 @@ The latest news are directly scraped from https://archlinux.org/.
 As explained in the
 [mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before
 a system upgrade i.e. `sudo pacman -Syu`, you should check that
-the mirrors in your mirrorlist are up to date e.g. not out of
+the mirrors in your mirrorlist are up-to-date e.g. not out of
 sync.
 
 ### It's not
@@ -42,7 +42,7 @@ milcheck
 ```
 
 In addition to the mirrorlist output you can print the Arch Linux
-[lastest news](https://archlinux.org/), handy to stay informed:
+[latest news](https://archlinux.org/), handy to stay informed:
 
 ```
 milcheck -n
