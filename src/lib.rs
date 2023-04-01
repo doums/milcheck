@@ -30,14 +30,11 @@ const OK: &str = "Ok";
 const NOT_FOUND: &str = "Not found!";
 const OUT_OF_SYNC: &str = "Out of sync!";
 const HEADERS: [&str; 9] = [
-    "State",
-    "Url",
-    "Protocol",
-    "Country",
-    "Completion %",
-    "Delay h:m",
-    "Avg dur s",
-    "Dev dur s",
+    "State", "Url", "Proto", // Protocol
+    "Country", "Comp%", // Completion
+    "Delay", // Delay (hh:mm)
+    "Avg",   // Average time (s)
+    "Dev",   // The standard deviation time (s)
     "Score",
 ];
 
@@ -240,8 +237,9 @@ impl MaxLength {
         let country = cmp::max(find_max_len(mirrors, "country")?, HEADERS[3].len());
         let completion = cmp::max(find_max_len(mirrors, "completion")?, HEADERS[4].len());
         let delay = cmp::max(find_max_len(mirrors, "delay")?, HEADERS[5].len());
-        let duration_avg = cmp::max(find_max_len(mirrors, "duration_avg")?, HEADERS[6].len());
-        let duration_stddev = cmp::max(find_max_len(mirrors, "duration_stddev")?, HEADERS[7].len());
+        let duration_avg = cmp::max(find_max_len(mirrors, "duration_avg")?, HEADERS[6].len()) + 1;
+        let duration_stddev =
+            cmp::max(find_max_len(mirrors, "duration_stddev")?, HEADERS[7].len()) + 1;
         let score = cmp::max(find_max_len(mirrors, "score")?, HEADERS[8].len());
         Ok(MaxLength {
             state,
