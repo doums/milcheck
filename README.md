@@ -16,7 +16,7 @@ Milcheck just reads your `/etc/pacman.d/mirrorlist` and retrieves
 the corresponding data from the official
 [mirror status page](https://www.archlinux.org/mirrors/status/).
 
-The latest news are directly scraped from https://archlinux.org/.
+The last news are directly scraped from https://archlinux.org/.
 
 ### Why ?
 
@@ -37,15 +37,23 @@ sync.
 
 ### Usage
 
+By default, milcheck prints the mirrorlist status
+
 ```
 milcheck
 ```
 
-In addition to the mirrorlist output you can print the Arch Linux
+In addition, it can fetch and print the Arch Linux
 [latest news](https://archlinux.org/), handy to stay informed:
 
 ```
-milcheck -n
+milcheck -n5
+```
+
+Example: print both mirrorlist and the latest news
+
+```
+milcheck -m -n1
 ```
 
 ### License

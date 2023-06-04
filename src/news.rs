@@ -215,7 +215,7 @@ impl TextDecorator for ContentDecorator {
         format!("{}. ", i)
     }
 
-    fn finalise(self) -> Vec<TaggedLine<Self::Annotation>> {
+    fn finalise(&mut self, _links: Vec<String>) -> Vec<TaggedLine<Self::Annotation>> {
         let mut lines = vec![];
         self.0.iter().enumerate().for_each(|(i, val)| {
             lines.push(TaggedLine::from_string(

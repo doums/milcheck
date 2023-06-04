@@ -3,24 +3,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use clap::Parser;
+use milcheck::cli::Cli;
 use milcheck::Milcheck;
-use std::convert::TryFrom;
 use std::process;
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// Print the latest news after mirrors status
-    #[arg(short, long)]
-    news: Option<u8>,
-}
 
 fn main() {
     let cli = Cli::parse();
-    let mut milcheck = Milcheck::try_from(cli.news).unwrap_or_else(|err| {
-        eprintln!("{}, run milcheck --help", err);
-        process::exit(1);
-    });
+    let mut milcheck = Milcheck::from(cli);
     milcheck.run().unwrap_or_else(|err| {
         eprintln!("error: {}", err);
         process::exit(1);

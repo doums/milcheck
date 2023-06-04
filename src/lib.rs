@@ -2,18 +2,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+pub mod cli;
 mod error;
 mod event;
 mod http;
 mod news;
 mod render;
+use cli::Cli;
 use error::Error;
 use http::Http;
 use news::News;
 use render::Render;
 use serde::{Deserialize, Serialize};
 use std::cmp;
-use std::convert::TryFrom;
 use std::fs;
 use std::str;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -38,22 +39,47 @@ const HEADERS: [&str; 9] = [
     "Score",
 ];
 
+#[derive(Debug, Clone)]
 pub struct Milcheck {
+    print_mirrorlist: bool,
     print_news: bool,
     last: Option<u8>,
 }
 
-impl TryFrom<Option<u8>> for Milcheck {
-    type Error = &'static str;
-
-    fn try_from(news: Option<u8>) -> Result<Self, Self::Error> {
+impl From<Cli> for Milcheck {
+    fn from(cli: Cli) -> Self {
+        let mut print_mirrorlist = false;
         let mut print_news = false;
         let mut last: Option<u8> = None;
-        if let Some(n) = news {
+
+        // if `-m` flag is passed without value, it's considered as true
+        if let Some(None) = cli.mirrorlist {
+            print_mirrorlist = true;
+        }
+        // if its value has been set by the user, use it
+        if let Some(Some(v)) = cli.mirrorlist {
+            print_mirrorlist = v;
+        }
+
+        // by default, without any flags, print mirrorlist status
+        if cli.mirrorlist.is_none() && cli.news.is_none() {
+            return Milcheck {
+                print_mirrorlist: true,
+                print_news: false,
+                last: None,
+            };
+        }
+
+        if let Some(n) = cli.news {
             print_news = true;
             last = Some(n);
         }
-        Ok(Milcheck { print_news, last })
+
+        Milcheck {
+            print_mirrorlist,
+            print_news,
+            last,
+        }
     }
 }
 
@@ -62,11 +88,20 @@ impl Milcheck {
         let (tx, rx) = mpsc::channel();
         let mut render = Render::new();
         let tx_cloned = Sender::clone(&tx);
-        match logic(tx_cloned, rx, &mut render, self.print_news, self.last) {
+        match logic(
+            tx_cloned,
+            rx,
+            &mut render,
+            self.print_mirrorlist,
+            self.print_news,
+            self.last,
+        ) {
             Ok((mirrors, news)) => {
                 drop(tx);
                 render.finish()?;
-                print_mirrors(mirrors)?;
+                if let Some(m) = mirrors {
+                    print_mirrors(m)?;
+                }
                 if let Some(text) = news {
                     println!("{}", text);
                 }
@@ -468,61 +503,66 @@ pub fn logic(
     tx: Sender<&'static str>,
     rx: Receiver<&'static str>,
     render: &mut Render,
+    print_mirrorlist: bool,
     print_news: bool,
     last: Option<u8>,
-) -> Result<(Vec<MirrorState>, Option<String>), Error> {
-    let mut mirrors = vec![];
+) -> Result<(Option<Vec<MirrorState>>, Option<String>), Error> {
+    let mut mirrors = None;
+    let mut news_text = None;
     render.run(rx);
-    tx.send("parsing local mirrorlist")?;
-    let mirrorlist = parse_mirrorlist()?;
-    tx.send("fetching mirror status list")?;
-    let request = Http::get(MIRROR_STATUS_URL);
-    let json_request = Http::get(MIRROR_STATUS_JSON_URL);
-    let mut arch_org_request = None;
-    if print_news {
-        arch_org_request = Some(Http::get(ARCHLINUX_ORG_URL));
-    }
-    let response = request.wait()?;
-    let json_response = json_request.wait()?;
-    let mut org_response = None;
-    if let Some(req) = arch_org_request {
-        org_response = Some(req.wait()?);
-    }
-    tx.send("deserialize json data")?;
-    let json: JsonResponse = serde_json::from_str(&json_response)
-        .map_err(|err| format!("json response parsing failed: {}", err))?;
-    tx.send("web scraping")?;
-    let v: Vec<&str> = response.split("</table>").collect();
-    if v.len() != 4 {
-        return Err(Error::new("web scraping failed"));
-    }
-    if !v[0].contains(OUTOFSYNC_HTML_TAG) {
-        return Err(Error::new("web scraping failed"));
-    }
-    if !v[1].contains(INSYNC_HTML_TAG) {
-        return Err(Error::new("web scraping failed"));
-    }
-    tx.send("building data")?;
-    for server in mirrorlist {
-        if let Some(mirror) = json.urls.iter().find(|&mirror| mirror.url == server) {
-            if let Some(_i) = v[0].find(&server) {
-                mirrors.push(MirrorState::OutOfSync(Mirror::from(mirror)));
-            } else {
-                mirrors.push(MirrorState::Synced(Mirror::from(mirror)));
-            }
-        } else {
-            mirrors.push(MirrorState::NotFound(server));
+    if print_mirrorlist {
+        let mut parsed = vec![];
+        tx.send("parsing local mirrorlist")?;
+        let mirrorlist = parse_mirrorlist()?;
+        tx.send("fetching mirror status list")?;
+        let request = Http::get(MIRROR_STATUS_URL);
+        let json_request = Http::get(MIRROR_STATUS_JSON_URL);
+        let response = request.wait()?;
+        let json_response = json_request.wait()?;
+        tx.send("deserialize json data")?;
+        let json: JsonResponse = serde_json::from_str(&json_response)
+            .map_err(|err| format!("json response parsing failed: {}", err))?;
+        tx.send("web scraping")?;
+        let v: Vec<&str> = response.split("</table>").collect();
+        if v.len() != 4 {
+            return Err(Error::new("web scraping failed"));
         }
+        if !v[0].contains(OUTOFSYNC_HTML_TAG) {
+            return Err(Error::new("web scraping failed"));
+        }
+        if !v[1].contains(INSYNC_HTML_TAG) {
+            return Err(Error::new("web scraping failed"));
+        }
+        tx.send("building data")?;
+        for server in mirrorlist {
+            if let Some(mirror) = json.urls.iter().find(|&mirror| mirror.url == server) {
+                if let Some(_i) = v[0].find(&server) {
+                    parsed.push(MirrorState::OutOfSync(Mirror::from(mirror)));
+                } else {
+                    parsed.push(MirrorState::Synced(Mirror::from(mirror)));
+                }
+            } else {
+                parsed.push(MirrorState::NotFound(server));
+            }
+        }
+        mirrors = Some(parsed);
     }
-    let news_text = if print_news {
-        tx.send("parsing news data")?;
+    if print_news {
+        tx.send("fetching latest news")?;
+        let mut arch_org_request = None;
+        if print_news {
+            arch_org_request = Some(Http::get(ARCHLINUX_ORG_URL));
+        }
+        let mut org_response = None;
+        if let Some(req) = arch_org_request {
+            org_response = Some(req.wait()?);
+        }
         if org_response.is_none() {
             return Err(Error::new("fail to fetch archlinux.org data"));
         }
+        tx.send("parsing news data")?;
         let mut news_parser = News::new(org_response.unwrap(), ARCHLINUX_ORG_URL, last);
-        Some(news_parser.parse()?)
-    } else {
-        None
+        news_text = Some(news_parser.parse()?);
     };
     tx.send("done")?;
     Ok((mirrors, news_text))
