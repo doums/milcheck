@@ -5,7 +5,7 @@
 
 :tea: _**MI**rror**L**ist **Check**_
 
-![milcheck](https://raw.githubusercontent.com/doums/milcheck/master/public/milcheck.png)
+![milcheck](https://github.com/doums/milcheck/assets/6359431/939c72ac-72f8-4ade-8155-ec8f66ba3c0b)
 
 A CLI that displays the status of your pacman mirrorlist
 and the Arch Linux latest news right in the terminal
