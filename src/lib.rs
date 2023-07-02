@@ -202,14 +202,17 @@ impl Mirror {
 impl From<&JsonMirror> for Mirror {
     fn from(json: &JsonMirror) -> Self {
         let completion = json.completion_pct.map(|completion| completion * 100f64);
-        let delay = if let Some(delay) = json.delay {
-            let hours = delay as f64 / 3600_f64;
-            let normalized_hours = hours.trunc() as u32;
-            let minutes = (hours.fract() * 60_f64).trunc() as u32;
-            Some((normalized_hours, minutes))
-        } else {
-            None
-        };
+        let mut delay: Option<(u32, u32)> = None;
+        if let Some(d) = json.delay {
+            if d < 0 {
+                delay = None;
+            } else {
+                let hours = d as f64 / 3600_f64;
+                let normalized_hours = hours.trunc() as u32;
+                let minutes = (hours.fract() * 60_f64).trunc() as u32;
+                delay = Some((normalized_hours, minutes));
+            }
+        }
         Mirror {
             url: String::from(&json.url),
             protocol: String::from(&json.protocol),
@@ -240,7 +243,7 @@ pub struct JsonMirror {
     country: String,
     country_code: String,
     completion_pct: Option<f64>,
-    delay: Option<u32>,
+    delay: Option<i32>,
     duration_avg: Option<f64>,
     duration_stddev: Option<f64>,
     score: Option<f64>,
