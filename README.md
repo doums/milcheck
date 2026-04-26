@@ -46,10 +46,10 @@ milcheck
 Print the Arch Linux [latest news](https://archlinux.org/)
 
 ```
-milcheck -n5
+milcheck -n
 ```
 
-Print both mirrorlist and latest news
+Print both mirrorlist and latest news (most recent one)
 
 ```
 milcheck -m -n1

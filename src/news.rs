@@ -84,20 +84,18 @@ fn rss_feed(url: &str) -> Result<Channel> {
     Channel::read_from(&content[..]).context("failed to read RSS channel")
 }
 
-pub fn get(last: Option<u8>) -> Result<String> {
+pub fn get(last: u8) -> Result<String> {
     let mut term_width = termion::terminal_size()?.0 as usize;
     if term_width > LINE_LENGTH {
         term_width = LINE_LENGTH;
     }
     let channel = rss_feed(&format!("{}{}", ARCHLINUX_ORG_URL, RSS_FEED))?;
-    let mut news: Vec<NewsItem> = channel
+    let news: Vec<NewsItem> = channel
         .items()
         .iter()
+        .take(last as usize)
         .map(|item| NewsItem::from_rss(item, term_width))
         .collect();
-    if let Some(l) = last {
-        news.truncate(l as usize);
-    };
     let output = format!(
         "{}{}Latest News{}\n{}{}{}/news{}{}",
         Bold,

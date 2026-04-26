@@ -4,10 +4,10 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
-    /// Print mirrorlist status (default)
+    /// Print mirrorlist status
     #[arg(short, long)]
-    pub mirrorlist: Option<Option<bool>>,
+    pub mirrorlist: bool,
     /// Print the latest news
     #[arg(short, long)]
-    pub news: Option<u8>,
+    pub news: Option<Option<u8>>,
 }

@@ -37,47 +37,36 @@ const HEADERS: [&str; 9] = [
     "Dev",   // The standard deviation time (s)
     "Score",
 ];
+const DEFAULT_NEWS_COUNT: u8 = 5;
 
 #[derive(Debug, Clone)]
 pub struct Milcheck {
     print_mirrorlist: bool,
     print_news: bool,
-    last: Option<u8>,
+    last: u8,
 }
 
 impl From<Cli> for Milcheck {
     fn from(cli: Cli) -> Self {
-        let mut print_mirrorlist = false;
-        let mut print_news = false;
-        let mut last: Option<u8> = None;
-
-        // if `-m` flag is passed without value, it's considered as true
-        if let Some(None) = cli.mirrorlist {
-            print_mirrorlist = true;
-        }
-        // if its value has been set by the user, use it
-        if let Some(Some(v)) = cli.mirrorlist {
-            print_mirrorlist = v;
-        }
-
         // by default, without any flags, print mirrorlist status
-        if cli.mirrorlist.is_none() && cli.news.is_none() {
-            return Milcheck {
-                print_mirrorlist: true,
-                print_news: false,
-                last: None,
-            };
-        }
-
-        if let Some(n) = cli.news {
-            print_news = true;
-            last = Some(n);
+        if !cli.mirrorlist && cli.news.is_none() {
+            return Milcheck::default();
         }
 
         Milcheck {
-            print_mirrorlist,
-            print_news,
-            last,
+            print_mirrorlist: cli.mirrorlist,
+            print_news: cli.news.is_some(),
+            last: cli.news.flatten().unwrap_or(DEFAULT_NEWS_COUNT),
+        }
+    }
+}
+
+impl Default for Milcheck {
+    fn default() -> Self {
+        Milcheck {
+            print_mirrorlist: true,
+            print_news: false,
+            last: DEFAULT_NEWS_COUNT,
         }
     }
 }
@@ -505,7 +494,7 @@ pub fn logic(
     render: &mut Render,
     print_mirrorlist: bool,
     print_news: bool,
-    last: Option<u8>,
+    last: u8,
 ) -> Result<(Option<Vec<MirrorState>>, Option<String>)> {
     let mut mirrors = None;
     render.run(rx);
