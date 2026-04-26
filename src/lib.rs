@@ -3,15 +3,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 pub mod cli;
-mod error;
 mod event;
 mod http;
 mod news;
 mod render;
+
+use anyhow::{Result, anyhow, bail};
 use cli::Cli;
-use error::Error;
 use http::Http;
-use news::News;
 use render::Render;
 use serde::{Deserialize, Serialize};
 use std::cmp;
@@ -24,7 +23,7 @@ use termion::style::{Bold, Reset};
 const PACMAN_MIRRORLIST: &str = "/etc/pacman.d/mirrorlist";
 const MIRROR_STATUS_URL: &str = "https://www.archlinux.org/mirrors/status/";
 const MIRROR_STATUS_JSON_URL: &str = "https://www.archlinux.org/mirrors/status/json/";
-const ARCHLINUX_ORG_URL: &str = "https://archlinux.org";
+pub const ARCHLINUX_ORG_URL: &str = "https://archlinux.org";
 const OUTOFSYNC_HTML_TAG: &str = "<table id=\"outofsync_mirrors\"";
 const INSYNC_HTML_TAG: &str = "<table id=\"successful_mirrors\"";
 const OK: &str = "Ok";
@@ -84,33 +83,28 @@ impl From<Cli> for Milcheck {
 }
 
 impl Milcheck {
-    pub fn run(&mut self) -> Result<(), Error> {
+    pub fn run(&mut self) -> Result<()> {
         let (tx, rx) = mpsc::channel();
         let mut render = Render::new();
         let tx_cloned = Sender::clone(&tx);
-        match logic(
+        let data = logic(
             tx_cloned,
             rx,
             &mut render,
             self.print_mirrorlist,
             self.print_news,
             self.last,
-        ) {
-            Ok((mirrors, news)) => {
-                drop(tx);
-                render.finish()?;
-                if let Some(m) = mirrors {
-                    print_mirrors(m)?;
-                }
-                if let Some(text) = news {
-                    println!("{}", text);
-                }
-            }
-            Err(err) => {
-                drop(tx);
-                render.finish()?;
-                return Err(err);
-            }
+        );
+
+        drop(tx);
+        render.finish();
+
+        let (mirrors, news) = data?;
+        if let Some(m) = mirrors {
+            print_mirrors(m)?;
+        }
+        if let Some(n) = news {
+            println!("{}", n);
         }
         Ok(())
     }
@@ -181,7 +175,7 @@ impl Mirror {
         }
     }
 
-    fn get_len(&self, field: &'static str) -> Result<usize, Error> {
+    fn get_len(&self, field: &'static str) -> Result<usize> {
         match field {
             "url" => Ok(self.url.len()),
             "protocol" => Ok(self.protocol.len()),
@@ -191,10 +185,7 @@ impl Mirror {
             "duration_avg" => Ok(self.duration_avg_to_str().len()),
             "duration_stddev" => Ok(self.duration_stddev_to_str().len()),
             "score" => Ok(self.score_to_str().len()),
-            _ => Err(Error::new(format!(
-                "Mirror does not have a field \"{}\"",
-                field
-            ))),
+            _ => bail!("mirror missing field \"{}\"", field),
         }
     }
 }
@@ -268,7 +259,7 @@ struct MaxLength {
 }
 
 impl MaxLength {
-    fn new(mirrors: &[MirrorState]) -> Result<Self, Error> {
+    fn new(mirrors: &[MirrorState]) -> Result<Self> {
         let state = cmp::max(find_max_state_len(mirrors), HEADERS[0].len());
         let url = cmp::max(find_max_len(mirrors, "url")?, HEADERS[1].len());
         let protocol = cmp::max(find_max_len(mirrors, "protocol")?, HEADERS[2].len());
@@ -317,7 +308,7 @@ fn find_max_state_len(mirrors: &[MirrorState]) -> usize {
     max_len
 }
 
-fn find_max_len(mirrors: &[MirrorState], key: &'static str) -> Result<usize, Error> {
+fn find_max_len(mirrors: &[MirrorState], key: &'static str) -> Result<usize> {
     let mut max_len = 0;
     for mirror_state in mirrors {
         match mirror_state {
@@ -345,18 +336,27 @@ fn find_max_len(mirrors: &[MirrorState], key: &'static str) -> Result<usize, Err
 
 fn print_headers(max_len: &MaxLength) {
     println!(
-        "{}{} {} {} {} {} {} {} {} {}{}",
+        "{}{:>state$} {:<url$} {:<protocol$} {:<country$} {:>completion$} {:>delay$} {:>duration_avg$} {:>duration_stddev$} {:>score$}{}",
         Bold,
-        format!("{:>width$}", HEADERS[0], width = max_len.state),
-        format!("{:<width$}", HEADERS[1], width = max_len.url),
-        format!("{:<width$}", HEADERS[2], width = max_len.protocol),
-        format!("{:<width$}", HEADERS[3], width = max_len.country),
-        format!("{:>width$}", HEADERS[4], width = max_len.completion),
-        format!("{:>width$}", HEADERS[5], width = max_len.delay),
-        format!("{:>width$}", HEADERS[6], width = max_len.duration_avg),
-        format!("{:>width$}", HEADERS[7], width = max_len.duration_stddev),
-        format!("{:>width$}", HEADERS[8], width = max_len.score),
-        Reset
+        HEADERS[0],
+        HEADERS[1],
+        HEADERS[2],
+        HEADERS[3],
+        HEADERS[4],
+        HEADERS[5],
+        HEADERS[6],
+        HEADERS[7],
+        HEADERS[8],
+        Reset,
+        state = max_len.state,
+        url = max_len.url,
+        protocol = max_len.protocol,
+        country = max_len.country,
+        completion = max_len.completion,
+        delay = max_len.delay,
+        duration_avg = max_len.duration_avg,
+        duration_stddev = max_len.duration_stddev,
+        score = max_len.score,
     );
 }
 
@@ -402,7 +402,7 @@ fn print_mirror<C: Color + Copy>(
     };
     println!(
         "{} {} {} {} {} {} {} {} {}",
-        format!(
+        format_args!(
             "{}{}{:>width$}{}",
             Bold,
             Fg(color),
@@ -410,34 +410,34 @@ fn print_mirror<C: Color + Copy>(
             Reset,
             width = max_len.state
         ),
-        format!("{:<width$}", mirror.url, width = max_len.url),
-        format!("{:<width$}", mirror.protocol, width = max_len.protocol),
-        format!("{:<width$}", mirror.country, width = max_len.country),
-        format!(
+        format_args!("{:<width$}", mirror.url, width = max_len.url),
+        format_args!("{:<width$}", mirror.protocol, width = max_len.protocol),
+        format_args!("{:<width$}", mirror.country, width = max_len.country),
+        format_args!(
             "{}{:>width$}{}",
             completion_color,
             mirror.completion_to_str(),
             Fg(ColorReset),
             width = max_len.completion,
         ),
-        format!(
+        format_args!(
             "{}{:>width$}{}",
             delay_color,
             mirror.delay_to_str(),
             Fg(ColorReset),
             width = max_len.delay
         ),
-        format!(
+        format_args!(
             "{:>width$}",
             mirror.duration_avg_to_str(),
             width = max_len.duration_avg
         ),
-        format!(
+        format_args!(
             "{:>width$}",
             mirror.duration_stddev_to_str(),
             width = max_len.duration_stddev
         ),
-        format!(
+        format_args!(
             "{}{:>width$}{}",
             score_color,
             mirror.score_to_str(),
@@ -447,19 +447,20 @@ fn print_mirror<C: Color + Copy>(
     );
 }
 
-fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
+fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<()> {
     let max_lengths = MaxLength::new(&mirrors)?;
     print_headers(&max_lengths);
     for mirror_state in &mirrors {
         match mirror_state {
             MirrorState::NotFound(server) => {
                 println!(
-                    "{}{}{}{} {}",
+                    "{}{}{:>state$}{} {}",
                     Bold,
                     Fg(Yellow),
-                    format!("{:>width$}", NOT_FOUND, width = max_lengths.state),
+                    NOT_FOUND,
                     Reset,
-                    server
+                    server,
+                    state = max_lengths.state,
                 );
             }
             MirrorState::OutOfSync(mirror) => {
@@ -474,14 +475,10 @@ fn print_mirrors(mirrors: Vec<MirrorState>) -> Result<(), Error> {
     Ok(())
 }
 
-fn parse_mirrorlist() -> Result<Vec<String>, String> {
+fn parse_mirrorlist() -> Result<Vec<String>> {
     let mut mirrors = vec![];
-    let mirrorlist = fs::read_to_string(PACMAN_MIRRORLIST).map_err(|err| {
-        format!(
-            "an error occured while reading the file {}: {}",
-            PACMAN_MIRRORLIST, err
-        )
-    })?;
+    let mirrorlist = fs::read_to_string(PACMAN_MIRRORLIST)
+        .map_err(|err| anyhow!("failed to read {}: {}", PACMAN_MIRRORLIST, err))?;
     for line in mirrorlist.lines() {
         if let Some(url) = line.strip_prefix("Server = ") {
             if line.ends_with("/$repo/os/$arch") {
@@ -496,7 +493,7 @@ fn parse_mirrorlist() -> Result<Vec<String>, String> {
         }
     }
     if mirrors.is_empty() {
-        Err(format!("no server found in {}", PACMAN_MIRRORLIST))
+        bail!("no server found in {}", PACMAN_MIRRORLIST)
     } else {
         Ok(mirrors)
     }
@@ -509,9 +506,8 @@ pub fn logic(
     print_mirrorlist: bool,
     print_news: bool,
     last: Option<u8>,
-) -> Result<(Option<Vec<MirrorState>>, Option<String>), Error> {
+) -> Result<(Option<Vec<MirrorState>>, Option<String>)> {
     let mut mirrors = None;
-    let mut news_text = None;
     render.run(rx);
     if print_mirrorlist {
         let mut parsed = vec![];
@@ -524,17 +520,11 @@ pub fn logic(
         let json_response = json_request.wait()?;
         tx.send("deserialize json data")?;
         let json: JsonResponse = serde_json::from_str(&json_response)
-            .map_err(|err| format!("json response parsing failed: {}", err))?;
+            .map_err(|err| anyhow!("json response parsing failed: {}", err))?;
         tx.send("web scraping")?;
         let v: Vec<&str> = response.split("</table>").collect();
-        if v.len() != 4 {
-            return Err(Error::new("web scraping failed"));
-        }
-        if !v[0].contains(OUTOFSYNC_HTML_TAG) {
-            return Err(Error::new("web scraping failed"));
-        }
-        if !v[1].contains(INSYNC_HTML_TAG) {
-            return Err(Error::new("web scraping failed"));
+        if v.len() != 4 || !v[0].contains(OUTOFSYNC_HTML_TAG) || !v[1].contains(INSYNC_HTML_TAG) {
+            bail!("mirror status scraping failed");
         }
         tx.send("building data")?;
         for server in mirrorlist {
@@ -550,23 +540,12 @@ pub fn logic(
         }
         mirrors = Some(parsed);
     }
-    if print_news {
+    let news = if print_news {
         tx.send("fetching latest news")?;
-        let mut arch_org_request = None;
-        if print_news {
-            arch_org_request = Some(Http::get(ARCHLINUX_ORG_URL));
-        }
-        let mut org_response = None;
-        if let Some(req) = arch_org_request {
-            org_response = Some(req.wait()?);
-        }
-        if org_response.is_none() {
-            return Err(Error::new("fail to fetch archlinux.org data"));
-        }
-        tx.send("parsing news data")?;
-        let mut news_parser = News::new(org_response.unwrap(), ARCHLINUX_ORG_URL, last);
-        news_text = Some(news_parser.parse()?);
+        Some(news::get(last)?)
+    } else {
+        None
     };
     tx.send("done")?;
-    Ok((mirrors, news_text))
+    Ok((mirrors, news))
 }

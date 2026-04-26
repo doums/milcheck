@@ -2,16 +2,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+use anyhow::Result;
 use clap::Parser;
-use milcheck::cli::Cli;
 use milcheck::Milcheck;
-use std::process;
+use milcheck::cli::Cli;
 
-fn main() {
+fn main() -> Result<()> {
+    env_logger::builder().format_timestamp(None).init();
+
     let cli = Cli::parse();
+
     let mut milcheck = Milcheck::from(cli);
-    milcheck.run().unwrap_or_else(|err| {
-        eprintln!("error: {}", err);
-        process::exit(1);
-    });
+    milcheck.run().inspect_err(|e| {
+        log::error!("{}", e);
+    })?;
+    Ok(())
 }

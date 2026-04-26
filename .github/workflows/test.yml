@@ -1,5 +1,8 @@
+name: Test
+
 on:
   workflow_call:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -14,13 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          components: clippy
+          components: rustfmt, clippy
       - name: Lint
         run: cargo clippy
-      - name: Check
-        run: cargo check
+      - name: Fmt
+        run: cargo fmt --check

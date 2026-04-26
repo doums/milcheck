@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::error::Error;
 use crate::event::{Event, Events};
+use anyhow::Result;
 use std::io::{self, Write};
 use std::iter::Cycle;
 use std::process;
@@ -19,7 +19,7 @@ use termion::style::{Italic, Reset};
 
 const SPINNER_RATE: u128 = 40;
 
-pub struct Render(Option<JoinHandle<Result<(), Error>>>);
+pub struct Render(Option<JoinHandle<Result<()>>>);
 
 impl Render {
     pub fn new() -> Render {
@@ -27,18 +27,16 @@ impl Render {
     }
 
     pub fn run(&mut self, rx: Receiver<&'static str>) {
-        let handle = thread::spawn(move || -> Result<(), Error> {
+        let handle = thread::spawn(move || -> Result<()> {
             draw(rx)?;
             Ok(())
         });
         self.0 = Some(handle);
     }
 
-    pub fn finish(self) -> Result<(), Error> {
+    pub fn finish(self) {
         if let Some(handle) = self.0 {
-            handle.join().unwrap()
-        } else {
-            Ok(())
+            handle.join().ok();
         }
     }
 }
@@ -91,7 +89,7 @@ impl<'a> Iterator for Spinner<'a> {
     }
 }
 
-fn draw(rx: Receiver<&'static str>) -> Result<(), Error> {
+fn draw(rx: Receiver<&'static str>) -> anyhow::Result<()> {
     let mut stdout = io::stdout().into_raw_mode()?;
     let (init_a, init_b) = stdout.cursor_pos()?;
     let events = Events::new();
@@ -132,13 +130,13 @@ fn draw(rx: Receiver<&'static str>) -> Result<(), Error> {
         }
         write!(stdout, "{}{}{}", Italic, tmp_state, Reset)?;
         stdout.flush()?;
-        if let Event::Input(key) = events.next()? {
-            if Events::is_exit_key(key) {
-                write!(stdout, "{}{}{}", Show, Restore, AfterCursor)?;
-                stdout.flush()?;
-                drop(stdout);
-                process::exit(1);
-            }
+        if let Event::Input(key) = events.next()?
+            && Events::is_exit_key(key)
+        {
+            write!(stdout, "{}{}{}", Show, Restore, AfterCursor)?;
+            stdout.flush()?;
+            drop(stdout);
+            process::exit(1);
         }
     }
     // events.finish()?;

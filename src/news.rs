@@ -2,29 +2,53 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::error::Error;
+use anyhow::{Context, Result};
+use chrono::DateTime;
 use html2text::{
-    from_read_rich, from_read_with_decorator,
-    render::text_renderer::{RichAnnotation, TaggedLine, TaggedLineElement, TextDecorator},
+    from_read_with_decorator,
+    render::{RichAnnotation, TaggedLine, TextDecorator},
 };
-use scraper::{Html, Selector};
+use rss::Channel;
 use std::fmt::{Display, Error as fmtError, Formatter};
-use std::vec;
 use termion::style::{Bold, Reset as StyleReset, Underline};
-use termion::terminal_size;
 use termion::{color::*, style::Italic};
 
+use crate::ARCHLINUX_ORG_URL;
+
+const RSS_FEED: &str = "/feeds/news/";
 // https://tachyons.io/docs/typography/measure/
 const LINE_LENGTH: usize = 66;
 
-pub struct Article<'a> {
-    title: &'a str,
-    link: &'a str,
-    content: &'a str,
-    date: &'a str,
+pub struct NewsItem<'rss_item> {
+    title: &'rss_item str,
+    link: &'rss_item str,
+    content: String,
+    date: String,
 }
 
-impl<'a> Display for Article<'a> {
+impl<'rss> NewsItem<'rss> {
+    fn from_rss(item: &'rss rss::Item, term_width: usize) -> Self {
+        let description = item.description().and_then(|desc| {
+            from_read_with_decorator(desc.as_bytes(), term_width, ContentDecorator(vec![]))
+                .context("fail to parse html item")
+                .ok()
+        });
+        let date = item.pub_date().and_then(|dt| {
+            DateTime::parse_from_rfc2822(dt)
+                .map(|d| d.format("%Y-%m-%d").to_string())
+                .context("fail to parse date")
+                .ok()
+        });
+        NewsItem {
+            title: item.title().unwrap_or_default(),
+            link: item.link().unwrap_or_default(),
+            content: description.unwrap_or("-".to_string()),
+            date: date.unwrap_or_default(),
+        }
+    }
+}
+
+impl<'rss> Display for NewsItem<'rss> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmtError> {
         write!(
             f,
@@ -52,80 +76,47 @@ impl<'a> Display for Article<'a> {
     }
 }
 
-pub struct News<'a> {
-    raw_html: String,
-    arch_url: &'a str,
-    last: Option<u8>,
+fn rss_feed(url: &str) -> Result<Channel> {
+    let content = reqwest::blocking::get(url)
+        .context("rss get failed")?
+        .bytes()
+        .context("rss get: failed to decode response")?;
+    Channel::read_from(&content[..]).context("failed to read RSS channel")
+}
+
+pub fn get(last: Option<u8>) -> Result<String> {
+    let mut term_width = termion::terminal_size()?.0 as usize;
+    if term_width > LINE_LENGTH {
+        term_width = LINE_LENGTH;
+    }
+    let channel = rss_feed(&format!("{}{}", ARCHLINUX_ORG_URL, RSS_FEED))?;
+    let mut news: Vec<NewsItem> = channel
+        .items()
+        .iter()
+        .map(|item| NewsItem::from_rss(item, term_width))
+        .collect();
+    if let Some(l) = last {
+        news.truncate(l as usize);
+    };
+    let output = format!(
+        "{}{}Latest News{}\n{}{}{}/news{}{}",
+        Bold,
+        Fg(Yellow),
+        StyleReset,
+        Underline,
+        Fg(Blue),
+        ARCHLINUX_ORG_URL,
+        StyleReset,
+        Fg(Reset)
+    );
+    let formatted_news = news
+        .iter()
+        .fold(String::new(), |acc, item| format!("{}\n{}", acc, item));
+    Ok(format!("{}\n{}", output, formatted_news))
 }
 
 #[derive(Debug)]
 struct ContentDecorator(Vec<String>);
-
-impl<'a> News<'a> {
-    pub fn new(raw_html: String, arch_url: &'a str, last: Option<u8>) -> Self {
-        News {
-            raw_html,
-            arch_url,
-            last,
-        }
-    }
-
-    pub fn parse(&mut self) -> Result<String, Error> {
-        let mut term_width = terminal_size()?.0 as usize;
-        if term_width > LINE_LENGTH {
-            term_width = LINE_LENGTH;
-        }
-        let document = Html::parse_document(&self.raw_html);
-        let date_selector = Selector::parse("#news > .timestamp").unwrap();
-        let content_selector = Selector::parse("#news > .article-content").unwrap();
-        let dates = document
-            .select(&date_selector)
-            .map(|element| element.text().collect())
-            .collect::<Vec<String>>();
-        let contents: Vec<String> = document
-            .select(&content_selector)
-            .map(|element| element.html())
-            .map(|element| {
-                from_read_with_decorator(element.as_bytes(), term_width, ContentDecorator(vec![]))
-            })
-            .collect();
-        let titles = parse_titles(&document, self.arch_url);
-        if ![titles.len(), dates.len(), contents.len()]
-            .iter()
-            .all(|&count| count == titles.len())
-        {
-            return Err(Error::new("failed to parse news data"));
-        }
-        let mut articles: Vec<Article> = titles
-            .iter()
-            .enumerate()
-            .map(|(i, val)| Article {
-                title: &val.0,
-                link: &val.1,
-                content: &contents[i],
-                date: &dates[i],
-            })
-            .collect();
-        if let Some(last) = self.last {
-            articles.truncate(last as usize);
-        };
-        let output = format!(
-            "{}{}Latest News{}\n{}{}{}/news{}{}",
-            Bold,
-            Fg(Yellow),
-            StyleReset,
-            Underline,
-            Fg(Blue),
-            self.arch_url,
-            StyleReset,
-            Fg(Reset)
-        );
-        let articles = articles.iter().fold(String::new(), |acc, article| {
-            format!("{}\n{}", acc, article)
-        });
-        Ok(format!("{}\n{}", output, articles))
-    }
-}
 
 impl TextDecorator for ContentDecorator {
     type Annotation = RichAnnotation;
@@ -142,43 +133,43 @@ impl TextDecorator for ContentDecorator {
         "<".to_string()
     }
 
-    fn decorate_em_start(&mut self) -> (String, Self::Annotation) {
+    fn decorate_em_start(&self) -> (String, Self::Annotation) {
         ("_".to_string(), RichAnnotation::Emphasis)
     }
 
-    fn decorate_em_end(&mut self) -> String {
+    fn decorate_em_end(&self) -> String {
         "_".to_string()
     }
 
-    fn decorate_strong_start(&mut self) -> (String, Self::Annotation) {
+    fn decorate_strong_start(&self) -> (String, Self::Annotation) {
         ("*".to_string(), RichAnnotation::Strong)
     }
 
-    fn decorate_strong_end(&mut self) -> String {
+    fn decorate_strong_end(&self) -> String {
         "*".to_string()
     }
 
-    fn decorate_strikeout_start(&mut self) -> (String, Self::Annotation) {
+    fn decorate_strikeout_start(&self) -> (String, Self::Annotation) {
         ("~".to_string(), RichAnnotation::Strikeout)
     }
 
-    fn decorate_strikeout_end(&mut self) -> String {
+    fn decorate_strikeout_end(&self) -> String {
         "~".to_string()
     }
 
-    fn decorate_code_start(&mut self) -> (String, Self::Annotation) {
+    fn decorate_code_start(&self) -> (String, Self::Annotation) {
         ("`".to_string(), RichAnnotation::Code)
     }
 
-    fn decorate_code_end(&mut self) -> String {
+    fn decorate_code_end(&self) -> String {
         "`".to_string()
     }
 
-    fn decorate_preformat_first(&mut self) -> Self::Annotation {
+    fn decorate_preformat_first(&self) -> Self::Annotation {
         RichAnnotation::Preformat(false)
     }
 
-    fn decorate_preformat_cont(&mut self) -> Self::Annotation {
+    fn decorate_preformat_cont(&self) -> Self::Annotation {
         RichAnnotation::Preformat(true)
     }
 
@@ -194,7 +185,7 @@ impl TextDecorator for ContentDecorator {
         ContentDecorator(vec![])
     }
 
-    fn header_prefix(&mut self, level: usize) -> String {
+    fn header_prefix(&self, level: usize) -> String {
         let mut s = String::with_capacity(level + 1);
         for _ in 0..level {
             s.push('#')
@@ -203,15 +194,15 @@ impl TextDecorator for ContentDecorator {
         s
     }
 
-    fn quote_prefix(&mut self) -> String {
-        "› ".to_string()
+    fn quote_prefix(&self) -> String {
+        "> ".to_string()
     }
 
-    fn unordered_item_prefix(&mut self) -> String {
-        "• ".to_string()
+    fn unordered_item_prefix(&self) -> String {
+        "* ".to_string()
     }
 
-    fn ordered_item_prefix(&mut self, i: i64) -> String {
+    fn ordered_item_prefix(&self, i: i64) -> String {
         format!("{}. ", i)
     }
 
@@ -225,22 +216,4 @@ impl TextDecorator for ContentDecorator {
         });
         lines
     }
-}
-
-fn parse_titles(document: &Html, arch_url: &str) -> Vec<(String, String)> {
-    let title_selector = Selector::parse("#news > h4 > a").unwrap();
-    document
-        .select(&title_selector)
-        .filter_map(|element| {
-            let tagged_lines = from_read_rich(element.html().as_bytes(), 1024);
-            if let Some(element) = tagged_lines.first() {
-                if let Some(TaggedLineElement::Str(tagged_string)) = element.iter().next() {
-                    if let Some(RichAnnotation::Link(link)) = tagged_string.tag.first() {
-                        return Some((tagged_string.s.to_owned(), format!("{}{}", arch_url, link)));
-                    }
-                }
-            }
-            None
-        })
-        .collect()
 }

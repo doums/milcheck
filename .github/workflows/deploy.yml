@@ -13,61 +13,85 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: test
+    env:
+      ARTIFACT_DIR: artifact
+      BINARY_NAME: milcheck
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --release --locked
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v3
+      - name: Prepare artifact
+        run: |
+          mkdir ${{ env.ARTIFACT_DIR }}
+          mv -f target/release/milcheck ${{ env.ARTIFACT_DIR }}/${{ env.BINARY_NAME }}
+          cd ${{ env.ARTIFACT_DIR }}
+          sha256sum ${{ env.BINARY_NAME }} > ${{ env.BINARY_NAME }}.sha256sum
+          ls -lh
+      - name: Print build info
+        run: |
+          echo "--------------------------------------------"
+          echo "binary name: ${{ env.BINARY_NAME }}"
+          echo "sha256sum: $(cat ${{ env.ARTIFACT_DIR }}/${{ env.BINARY_NAME }}.sha256sum)"
+          echo "file size: $(du -h ${{ env.ARTIFACT_DIR }}/${{ env.BINARY_NAME }} | cut -f1)"
+          echo "--------------------------------------------"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
         with:
           name: milcheck
-          path: ./target/release/milcheck
+          path: ${{ env.ARTIFACT_DIR }}
+          retention-days: 2
+          if-no-files-found: error
 
-  gh-release:
-    name: Publish Github Release
+  release:
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Download binary artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v6
         with:
           name: milcheck
-          path: ./target/release/
-      - name: Release
-        uses: softprops/action-gh-release@v1
+          path: artifacts
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
-          files: target/release/milcheck
+          name: ${{ github.ref_name }}
+          files: |
+            artifacts/*
 
-  aur-packaging:
+  aur-publish:
     name: Publish AUR package
-    needs: gh-release
+    needs: release
     runs-on: ubuntu-latest
     env:
-      PKG_NAME: milcheck
-      PKGBUILD: ./.pkg/aur/PKGBUILD
-      RELEASE_TAG: ${{ github.ref_name }}
-      REPOSITORY: ${{ github.repository }}
+      PKGBUILD: ./.pkg/arch/PKGBUILD
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Download sources
-        run: curl -LfsSo "$PKG_NAME-$RELEASE_TAG".tar.gz "https://github.com/$REPOSITORY/archive/refs/tags/$RELEASE_TAG.tar.gz"
+        uses: actions/checkout@v6
       - name: Update PKGBUILD
-        run: ./.pkg/aur/update.sh
-      - name: Show PKGBUILD
-        run: cat "$PKGBUILD"
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          # strip v prefix
+          version="${RELEASE_TAG#v}"
+          # ⚠ Dashes are not allowed in package version, replace any - by _
+          pkgver=${version//-/_}
+          echo "pkgver: $pkgver"
+          # update pkgver
+          sed -i "s/pkgver=.*/pkgver=$pkgver/" ${{ env.PKGBUILD }}
+          echo '--------------------------------------------'
+          cat ${{ env.PKGBUILD }}
       - name: Publish
-        uses: KSXGitHub/github-actions-deploy-aur@v2.6.0
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.2
         with:
-          pkgname: ${{ env.PKG_NAME }}
+          pkgname: milcheck
           pkgbuild: ${{ env.PKGBUILD }}
+          updpkgsums: true
           commit_username: ${{ secrets.AUR_USERNAME }}
           commit_email: ${{ secrets.AUR_EMAIL }}
           ssh_private_key: ${{ secrets.AUR_SSH_KEY }}

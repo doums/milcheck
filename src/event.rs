@@ -2,7 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use crate::error::Error;
+use anyhow::Result;
 use std::io;
 use std::sync::mpsc::{self, Receiver, RecvError, TryRecvError::Disconnected};
 use std::thread::{self, JoinHandle};
@@ -20,13 +20,13 @@ pub enum Event<I> {
 
 pub struct Events {
     rx: Receiver<Event<Key>>,
-    input_handle: JoinHandle<Result<(), Error>>,
-    tick_handle: JoinHandle<Result<(), Error>>,
+    input_handle: JoinHandle<Result<()>>,
+    tick_handle: JoinHandle<Result<()>>,
 }
 
 impl Events {
     pub fn is_exit_key(key: Key) -> bool {
-        EXIT_KEYS.iter().any(|&k| k == key)
+        EXIT_KEYS.contains(&key)
     }
 
     pub fn new() -> Events {
@@ -35,12 +35,12 @@ impl Events {
         let input_handle = {
             let tx = tx.clone();
             let tick_tx = tick_tx;
-            thread::spawn(move || -> Result<(), Error> {
+            thread::spawn(move || -> Result<()> {
                 let stdin = io::stdin();
                 for input in stdin.keys() {
                     let key = input?;
                     tx.send(Event::Input(key))?;
-                    if EXIT_KEYS.iter().any(|&k| k == key) {
+                    if EXIT_KEYS.contains(&key) {
                         tick_tx.send(())?;
                         return Ok(());
                     }
@@ -50,7 +50,7 @@ impl Events {
         };
         let tick_handle = {
             let tx = tx;
-            thread::spawn(move || -> Result<(), Error> {
+            thread::spawn(move || -> Result<()> {
                 loop {
                     tx.send(Event::Tick)?;
                     match tick_rx.try_recv() {
@@ -76,7 +76,8 @@ impl Events {
         self.rx.recv()
     }
 
-    pub fn finish(self) -> Result<(), Error> {
+    #[allow(dead_code)]
+    pub fn finish(self) -> Result<()> {
         self.input_handle.join().unwrap()?;
         self.tick_handle.join().unwrap()?;
         Ok(())
