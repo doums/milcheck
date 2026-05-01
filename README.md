@@ -7,28 +7,28 @@
 
 ![milcheck](https://github.com/doums/milcheck/assets/6359431/939c72ac-72f8-4ade-8155-ec8f66ba3c0b)
 
-A CLI that displays the status of your pacman mirrorlist
-and the Arch Linux latest news right in the terminal
+A CLI to get the status of the local pacman mirrorlist
+and the Arch Linux latest news
 
 ### How ?
 
-Milcheck just reads your `/etc/pacman.d/mirrorlist` and retrieves
-the corresponding data from the official
-[mirror status page](https://www.archlinux.org/mirrors/status/).
+Milcheck reads `/etc/pacman.d/mirrorlist` and retrieves
+the corresponding mirror data from the official
+[status page](https://www.archlinux.org/mirrors/status/).
 
 The last news are fetched from the [RSS feed](https://archlinux.org/feeds/news/).
 
 ### Why ?
 
 As explained in the
-[mirror doc](https://wiki.archlinux.org/index.php/Mirrors), before
+[mirror doc](https://wiki.archlinux.org/title/Mirrors), before
 a system upgrade i.e. `sudo pacman -Syu`, you should check that
-the mirrors in your mirrorlist are up-to-date e.g. not out of
+the mirrors set in your mirrorlist are up-to-date e.g. not out of
 sync.
 
 ### It's not
 
-..an additional mirrorlist ranking utility.
+..an additional mirror list ranking utility.
 
 ### Install
 
@@ -37,7 +37,7 @@ sync.
 
 ### Usage
 
-Prints the mirrorlist status
+Prints the mirrors status
 
 ```
 milcheck
@@ -49,7 +49,7 @@ Print the Arch Linux [latest news](https://archlinux.org/)
 milcheck -n
 ```
 
-Print both mirrorlist and latest news (most recent one)
+Print both mirrors and latest news (most recent one)
 
 ```
 milcheck -m -n1
